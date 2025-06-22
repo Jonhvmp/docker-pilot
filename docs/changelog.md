@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced getting started experience
 - Better code examples
 
-## [2.0.2] - 2025-06-22
+## [2.0.1] - 2025-06-22
 
 ### Added
 - 📄 **Enhanced Docker Compose File Management**
@@ -63,7 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated type definitions for compose file information
 - Comprehensive test coverage for new features
 
-## [2.0.1] - 2025-06-22
+## [2.0.0] - 2025-06-22
 
 ### Added
 - 🌍 **Multi-language Support (i18n)**

@@ -446,7 +446,7 @@ Found 3 docker-compose files:
    🛠️ 4 services: web, api, database, redis
 
 2. backend/docker-compose.dev.yml (development) 📂(2)
-   📏 1.8 KB | 📅 21/06/2025  
+   📏 1.8 KB | 📅 21/06/2025
    🛠️ 2 services: api-dev, database-dev
 ```
 
