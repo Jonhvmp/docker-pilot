@@ -1,0 +1,107 @@
+{
+  "name": "docker-pilot",
+  "version": "1.0.0",
+  "description": "A powerful, scalable Docker CLI library for managing containerized applications of any size",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "docker-pilot": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "dev": "ts-node src/cli.ts",
+    "start": "node dist/cli.js",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "format": "prettier --write src/**/*.ts",
+    "prepublishOnly": "npm run build",
+    "clean": "rimraf dist"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jonhvmp/docker-pilot.git"
+  },
+  "keywords": [
+    "docker",
+    "cli",
+    "containers",
+    "docker-compose",
+    "devops",
+    "orchestration",
+    "kubernetes",
+    "management",
+    "toolkit",
+    "automation",
+    "containerization",
+    "scalability",
+    "performance",
+    "cloud",
+    "infrastructure",
+    "microservices",
+    "typescript",
+    "development",
+    "deployment"
+  ],
+  "author": "Jonhvmp",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Jonhvmp/docker-pilot/issues"
+  },
+  "homepage": "https://github.com/Jonhvmp/docker-pilot#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "boxen": "^8.0.1",
+    "chalk": "^5.4.1",
+    "cli-table3": "^0.6.5",
+    "commander": "^11.1.0",
+    "figlet": "^1.8.1",
+    "fs-extra": "^11.1.1",
+    "glob": "^10.3.10",
+    "gradient-string": "^3.0.0",
+    "inquirer": "^9.3.7",
+    "js-yaml": "^4.1.0",
+    "ora": "^7.0.1",
+    "semver": "^7.5.4",
+    "yaml": "^2.3.4",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/inquirer": "^9.0.8",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.8.10",
+    "@types/semver": "^7.5.5",
+    "@typescript-eslint/eslint-plugin": "^6.9.1",
+    "@typescript-eslint/parser": "^6.9.1",
+    "@vitest/coverage-v8": "^3.2.4",
+    "eslint": "^8.53.0",
+    "prettier": "^3.0.3",
+    "rimraf": "^5.0.5",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2",
+    "vitest": "^3.2.4"
+  },
+  "peerDependencies": {
+    "docker": "*",
+    "docker-compose": "*"
+  },
+  "peerDependenciesMeta": {
+    "docker": {
+      "optional": false
+    },
+    "docker-compose": {
+      "optional": false
+    }
+  }
+}
