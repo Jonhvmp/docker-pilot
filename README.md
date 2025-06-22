@@ -168,7 +168,7 @@ Switch languages on-the-fly through the advanced settings menu!
 
 - **Node.js** >= 18.0.0
 - **Docker** >= 20.0.0
-- **Docker Compose** >= 2.0.1
+- **Docker Compose** >= 2.0.2
 
 ## 🎯 Use Cases
 

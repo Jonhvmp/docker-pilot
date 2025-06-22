@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced getting started experience
 - Better code examples
 
-## [2.0.1] - 2025-06-22
+## [2.0.2] - 2025-06-22
 
 ### Added
 - 📄 **Enhanced Docker Compose File Management**
@@ -235,7 +235,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Release Date | Key Features |
 |---------|--------------|--------------|
-| 2.0.1 | 2025-06-22 | Multi-language support, enhanced plugins, validation |
+| 2.0.2 | 2025-06-22 | Multi-language support, enhanced plugins, validation |
 | 1.5.0 | 2025-05-15 | Real-time monitoring, advanced cleanup, health checks |
 | 1.4.0 | 2025-04-20 | Service scaling, shell access, log filtering |
 | 1.3.0 | 2025-03-18 | Interactive shell, service operations, validation |
