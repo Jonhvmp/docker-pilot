@@ -15,3 +15,4 @@ export { ConfigCommand } from './ConfigCommand';
 export { RestartCommand } from './RestartCommand';
 export { CleanCommand } from './CleanCommand';
 export { PullCommand } from './PullCommand';
+export { ComposeCommand } from './ComposeCommand';

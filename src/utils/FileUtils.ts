@@ -330,6 +330,261 @@ export class FileUtils {
       dockerignore
     };
   }
+  /**
+   * Find Docker Compose files recursively with enhanced search
+   */
+  async findDockerComposeFiles(startDir?: string, options?: {
+    maxDepth?: number;
+    includeVariants?: boolean;
+    skipDirectories?: string[];
+  }): Promise<string[]> {
+    const searchDir = startDir || process.cwd();
+    const composeFiles: string[] = [];
+    const maxDepth = options?.maxDepth || 6;
+    const includeVariants = options?.includeVariants !== false;
+    const additionalSkipDirs = options?.skipDirectories || [];
+
+    const composeFilenames = [
+      // Main compose files
+      'docker-compose.yml',
+      'docker-compose.yaml',
+      'compose.yml',
+      'compose.yaml',
+    ];
+
+    if (includeVariants) {
+      composeFilenames.push(
+        // Environment variants
+        'docker-compose.dev.yml',
+        'docker-compose.dev.yaml',
+        'docker-compose.development.yml',
+        'docker-compose.development.yaml',
+        'docker-compose.prod.yml',
+        'docker-compose.prod.yaml',
+        'docker-compose.production.yml',
+        'docker-compose.production.yaml',
+        'docker-compose.local.yml',
+        'docker-compose.local.yaml',
+        'docker-compose.test.yml',
+        'docker-compose.test.yaml',
+        'docker-compose.testing.yml',
+        'docker-compose.testing.yaml',
+        'docker-compose.staging.yml',
+        'docker-compose.staging.yaml',
+        'docker-compose.override.yml',
+        'docker-compose.override.yaml',
+        // Alternative formats
+        'compose.dev.yml',
+        'compose.dev.yaml',
+        'compose.prod.yml',
+        'compose.prod.yaml',
+        'compose.local.yml',
+        'compose.local.yaml',
+        'compose.test.yml',
+        'compose.test.yaml'
+      );
+    }
+
+    const searchRecursively = async (dir: string, currentDepth: number = 0): Promise<void> => {
+      if (currentDepth > maxDepth) return;
+
+      try {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
+
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+
+          if (entry.isFile() && composeFilenames.includes(entry.name)) {
+            composeFiles.push(fullPath);
+          } else if (entry.isDirectory() && !this.shouldSkipDirectory(entry.name, additionalSkipDirs)) {
+            await searchRecursively(fullPath, currentDepth + 1);
+          }
+        }
+      } catch (error) {
+        this.logger.debug(`Failed to read directory ${dir}:`, error);
+      }
+    };
+
+    await searchRecursively(searchDir);
+    return composeFiles;
+  }
+  /**
+   * Check if directory should be skipped during Docker Compose search
+   */
+  private shouldSkipDirectory(dirName: string, additionalSkipDirs: string[] = []): boolean {
+    const skipDirectories = [
+      'node_modules',
+      '.git',
+      '.vscode',
+      '.idea',
+      'dist',
+      'build',
+      'target',
+      'out',
+      'tmp',
+      'temp',
+      '.next',
+      '.nuxt',
+      'coverage',
+      '__pycache__',
+      '.pytest_cache',
+      'venv',
+      'env',
+      '.env',
+      'vendor',
+      'logs',
+      '.docker',
+      'bin',
+      'obj',
+      '.vs',
+      'packages',
+      'bower_components',
+      '.sass-cache',
+      '.gradle',
+      '.mvn',
+      'target'
+    ];
+
+    const allSkipDirectories = [...skipDirectories, ...additionalSkipDirs];
+    return allSkipDirectories.includes(dirName) || dirName.startsWith('.');
+  }
+  /**
+   * Find all Docker Compose files with detailed information and enhanced search
+   */
+  async findDockerComposeFilesWithInfo(startDir?: string, options?: {
+    maxDepth?: number;
+    includeVariants?: boolean;
+    skipDirectories?: string[];
+    includeEmptyFiles?: boolean;
+  }): Promise<Array<{
+    path: string;
+    relativePath: string;
+    filename: string;
+    directory: string;
+    size: number;
+    modified: Date;
+    hasServices: boolean;
+    serviceCount: number;
+    services: string[];
+    depth: number;
+    environment?: string | undefined;
+    isMainFile: boolean;
+    priority: number;
+  }>> {
+    const searchDir = startDir || process.cwd();
+    const composeFiles = await this.findDockerComposeFiles(searchDir, options);
+    const filesWithInfo = [];
+
+    this.logger.debug(`Found ${composeFiles.length} docker-compose files to analyze`);
+
+    for (const filePath of composeFiles) {
+      try {
+        const stats = await fs.stat(filePath);
+        const relativePath = path.relative(searchDir, filePath);
+        const filename = path.basename(filePath);
+        const directory = path.dirname(filePath);
+
+        // Skip empty files unless explicitly requested
+        if (!options?.includeEmptyFiles && stats.size === 0) {
+          this.logger.debug(`Skipping empty file: ${relativePath}`);
+          continue;
+        }
+
+        // Calculate depth level
+        const depth = relativePath.split(path.sep).length - 1;
+
+        // Determine environment and priority
+        const environment = this.extractEnvironmentFromFilename(filename);
+        const isMainFile = this.isMainComposeFile(filename);
+
+        // Try to read and parse the compose file
+        let hasServices = false;
+        let serviceCount = 0;
+        let services: string[] = [];
+
+        try {
+          const composeData = await this.readYaml(filePath);
+          if (composeData.services && typeof composeData.services === 'object') {
+            hasServices = true;
+            services = Object.keys(composeData.services);
+            serviceCount = services.length;
+          }
+        } catch (error) {
+          this.logger.debug(`Failed to parse compose file ${filePath}:`, error);
+        }
+
+        // Calculate priority score (lower is better)
+        let priority = 0;
+        priority += depth * 10; // Prefer files closer to root
+        priority += isMainFile ? 0 : 5; // Prefer main files over variants
+        priority += serviceCount > 0 ? 0 : 20; // Prefer files with services
+        priority -= serviceCount; // More services = higher priority (lower score)
+
+        filesWithInfo.push({
+          path: filePath,
+          relativePath,
+          filename,
+          directory,
+          size: stats.size,
+          modified: stats.mtime,
+          hasServices,
+          serviceCount,
+          services,
+          depth,
+          environment,
+          isMainFile,
+          priority
+        });
+      } catch (error) {
+        this.logger.debug(`Failed to get info for compose file ${filePath}:`, error);
+      }
+    }
+
+    // Sort by priority (lower priority number = higher importance)
+    return filesWithInfo.sort((a, b) => {
+      if (a.priority !== b.priority) {
+        return a.priority - b.priority;
+      }
+      // If same priority, sort alphabetically
+      return a.relativePath.localeCompare(b.relativePath);
+    });
+  }
+
+  /**
+   * Extract environment type from compose filename
+   */
+  private extractEnvironmentFromFilename(filename: string): string | undefined {
+    const envPatterns = {
+      'dev': /\.(dev|development)\./,
+      'prod': /\.(prod|production)\./,
+      'test': /\.(test|testing)\./,
+      'staging': /\.staging\./,
+      'local': /\.local\./,
+      'override': /\.override\./
+    };
+
+    for (const [env, pattern] of Object.entries(envPatterns)) {
+      if (pattern.test(filename)) {
+        return env;
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Check if filename is a main compose file (not an environment variant)
+   */
+  private isMainComposeFile(filename: string): boolean {
+    const mainFiles = [
+      'docker-compose.yml',
+      'docker-compose.yaml',
+      'compose.yml',
+      'compose.yaml'
+    ];
+
+    return mainFiles.includes(filename);
+  }
 
   /**
    * Check if file is empty

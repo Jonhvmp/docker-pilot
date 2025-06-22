@@ -8,6 +8,7 @@ import { DockerPilotConfig, DockerPilotConfigSchema, ConfigurationError } from '
 import { Logger } from '../utils/Logger';
 import { FileUtils } from '../utils/FileUtils';
 import { ValidationUtils } from '../utils/ValidationUtils';
+import { I18n } from '../utils/i18n';
 
 export interface ConfigManagerOptions {
   configPath?: string;
@@ -23,11 +24,13 @@ export class ConfigManager {
   private fileUtils: FileUtils;
   private validationUtils: ValidationUtils;
   private options: Required<ConfigManagerOptions>;
+  private i18n: I18n;
 
   constructor(options: ConfigManagerOptions = {}) {
     this.logger = new Logger();
     this.fileUtils = new FileUtils(this.logger);
     this.validationUtils = new ValidationUtils(this.logger, this.fileUtils);
+    this.i18n = new I18n();
 
     this.options = {
       configPath: options.configPath || this.getDefaultConfigPath(),
@@ -364,26 +367,59 @@ export class ConfigManager {
     }
 
     return merged;
-  }
-
-  /**
-   * Detect Docker Compose services from file
+  }  /**
+   * Detect Docker Compose services from file or search recursively with enhanced search
    */
   async detectServicesFromCompose(composePath?: string): Promise<Record<string, any>> {
     try {
-      const composeFile = composePath || path.join(process.cwd(), 'docker-compose.yml');
+      let composeFile: string;
+
+      if (composePath) {
+        composeFile = composePath;
+      } else {
+        // Search for docker-compose files recursively with enhanced options
+        const foundFiles = await this.fileUtils.findDockerComposeFilesWithInfo(undefined, {
+          maxDepth: 6,
+          includeVariants: true,
+          includeEmptyFiles: false
+        });
+
+        if (foundFiles.length === 0) {
+          this.logger.debug(this.i18n.t('compose.no_files_found'));
+          return {};
+        }
+
+        // Use the first file (sorted by priority)
+        const firstFile = foundFiles[0];
+        if (!firstFile) {
+          this.logger.debug(this.i18n.t('compose.no_files_found'));
+          return {};
+        }
+
+        composeFile = firstFile.path;
+
+        if (foundFiles.length > 1) {
+          this.logger.info(this.i18n.t('compose.multiple_files_found', { count: foundFiles.length }));
+          foundFiles.slice(0, 3).forEach((file, index) => {
+            const envText = file.environment ? ` (${file.environment})` : '';
+            const mainFileIndicator = file.isMainFile ? ' 🎯' : '';
+            this.logger.info(`  ${index + 1}. ${file.relativePath}${envText}${mainFileIndicator} (${file.serviceCount} ${this.i18n.t('compose.services')})`);
+          });
+          this.logger.info(this.i18n.t('compose.using_first_file', { file: firstFile.relativePath }));
+        }
+      }
 
       if (!(await this.fileUtils.exists(composeFile))) {
-        this.logger.debug(`Docker Compose file not found: ${composeFile}`);
+        this.logger.debug(this.i18n.t('compose.file_not_found', { file: composeFile }));
         return {};
       }
 
-      this.logger.info(`Detecting services from: ${composeFile}`);
+      this.logger.info(this.i18n.t('compose.detecting_services', { file: path.relative(process.cwd(), composeFile) }));
 
       const composeData = await this.fileUtils.readYaml(composeFile);
 
       if (!composeData.services) {
-        this.logger.warn('No services found in Docker Compose file');
+        this.logger.warn(this.i18n.t('compose.no_services_in_file'));
         return {};
       }
 

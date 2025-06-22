@@ -329,7 +329,7 @@ export class DockerPilot extends EventEmitter {
   }
 
   // ============================================================================
-  // UTILITY METHODS
+  // UTILITY AND GETTER METHODS
   // ============================================================================
 
   /**
@@ -380,6 +380,30 @@ export class DockerPilot extends EventEmitter {
       this.emitEvent('command:error', { command: 'clean', error });
       throw error;
     }
+  }
+
+  /**
+   * Get FileUtils instance
+   */
+  getFileUtils(): FileUtils {
+    return this.fileUtils;
+  }
+
+  /**
+   * Set Docker Compose file path
+   */
+  async setComposeFile(composeFilePath: string): Promise<void> {
+    if (!this.serviceManager) {
+      throw new Error(this.i18n.t('error.service_manager_unavailable'));
+    }
+
+    // Update service manager options
+    this.serviceManager = new ServiceManager(this.config!, {
+      ...this.serviceManager.getOptions(),
+      composeFile: composeFilePath
+    });
+
+    this.logger.info(this.i18n.t('compose.file_set', { file: path.relative(process.cwd(), composeFilePath) }));
   }
 
   // ============================================================================
@@ -687,34 +711,54 @@ export class DockerPilot extends EventEmitter {
       console.log(this.i18n.t('setup.creating_initial'));
       await this.createInitialSetup();
     }
-  }
-
-  /**
-   * Auto-detect docker-compose files and configure services
+  }  /**
+   * Auto-detect docker-compose files and configure services with recursive search
    */
   private async autoDetectAndConfigure(): Promise<void> {
-    const workingDir = this.getWorkingDirectory();
-    const composeFiles = [
-      'docker-compose.yml',
-      'docker-compose.yaml',
-      'compose.yml',
-      'compose.yaml'
-    ];
+    console.log(this.i18n.t('compose.recursive_search'));
 
-    let foundComposeFile = null;
-      for (const file of composeFiles) {
-      const filePath = path.join(workingDir, file);
-      const exists = await this.fileUtils.exists(filePath);      if (exists) {
-        foundComposeFile = filePath;
-        console.log(this.i18n.t('setup.found_compose', { file }));
-        break;
-      }
+    // Use enhanced recursive search
+    const foundFiles = await this.fileUtils.findDockerComposeFilesWithInfo(this.getWorkingDirectory(), {
+      maxDepth: 6,
+      includeVariants: true,
+      includeEmptyFiles: false
+    });
+
+    if (foundFiles.length === 0) {
+      throw new Error(this.i18n.t('error.generic', { message: 'No docker-compose files found in project or subdirectories' }));
     }
 
-    if (foundComposeFile) {
-      await this.parseComposeFileAndUpdateConfig(foundComposeFile);
+    // Display found files
+    if (foundFiles.length === 1) {
+      const file = foundFiles[0];
+      if (file) {
+        console.log(this.i18n.t('autodetect.compose_found', { file: file.relativePath }));
+        if (file.serviceCount > 0) {
+          console.log(`   ${this.i18n.t('compose.services')}: ${file.services.join(', ')}`);
+        }
+        console.log(this.i18n.t('compose.file_info', { dir: file.directory }));
+
+        await this.parseComposeFileAndUpdateConfig(file.path);
+      }
     } else {
-      throw new Error(this.i18n.t('error.generic', { message: 'No docker-compose file found' }));
+      console.log(this.i18n.t('compose.found_files_summary', { count: foundFiles.length }));
+
+      // Show top 3 files as options
+      const topFiles = foundFiles.slice(0, 3);
+      topFiles.forEach((file, index) => {
+        const envText = file.environment ? ` (${file.environment})` : '';
+        const servicesText = file.services.length > 0 ? file.services.join(', ') : this.i18n.t('menu.no_services');
+        console.log(`   ${index + 1}. ${file.relativePath}${envText}`);
+        console.log(`      ${file.serviceCount} ${this.i18n.t('compose.services')}: ${servicesText}`);
+        console.log(this.i18n.t('compose.file_info', { dir: path.relative(process.cwd(), file.directory) }));
+      });
+
+      // Use the first (highest priority) file automatically
+      const selectedFile = foundFiles[0];
+      if (selectedFile) {
+        console.log(this.i18n.t('compose.using_first_file', { file: selectedFile.relativePath }));
+        await this.parseComposeFileAndUpdateConfig(selectedFile.path);
+      }
     }
   }
 

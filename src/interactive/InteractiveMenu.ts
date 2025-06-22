@@ -464,8 +464,181 @@ export class InteractiveMenu {
         action: async () => {
           await this.showAdvancedSettings();
         }
+      }    );
+
+    // Compose file management commands
+    options.push(
+      {
+        key: (optionKey++).toString(),
+        label: this.i18n.t('command.compose_list'),
+        category: '📄 ' + this.i18n.t('command.compose_management'),        action: async () => {
+          const context = this.createCommandContext();
+
+          const composeCommand = new (await import('../commands/ComposeCommand')).ComposeCommand(context);
+          const result = await composeCommand.execute(['list', '--variants']);
+
+          if (result.success) {
+            console.log(result.output);
+          } else {
+            this.logger.error(result.error || 'Erro desconhecido');
+          }
+        }
+      },
+      {
+        key: (optionKey++).toString(),
+        label: this.i18n.t('command.compose_find'),
+        category: '📄 ' + this.i18n.t('command.compose_management'),        action: async () => {
+          const searchDir = await this.askQuestion(this.i18n.t('command.compose_search_dir_prompt'));
+          const dirToSearch = searchDir.trim() || process.cwd();
+
+          const context = this.createCommandContext();
+
+          const composeCommand = new (await import('../commands/ComposeCommand')).ComposeCommand(context);
+          const result = await composeCommand.execute(['find', dirToSearch]);
+
+          if (result.success) {
+            console.log(result.output);
+          } else {
+            this.logger.error(result.error || 'Erro desconhecido');
+          }
+        }
+      },
+      {
+        key: (optionKey++).toString(),
+        label: this.i18n.t('command.compose_analyze'),
+        category: '📄 ' + this.i18n.t('command.compose_management'),
+        action: async () => {
+          // First, let user select from available compose files
+          const fileUtils = this.dockerPilot.getFileUtils();
+          const foundFiles = await fileUtils.findDockerComposeFilesWithInfo(undefined, {
+            maxDepth: 6,
+            includeVariants: true,
+            includeEmptyFiles: false
+          });
+
+          if (foundFiles.length === 0) {
+            this.logger.warn(this.i18n.t('compose.no_files_found'));
+            return;
+          }          if (foundFiles.length === 1) {
+            // Only one file, analyze it directly
+            const firstFile = foundFiles[0];
+            if (firstFile) {
+              const context = this.createCommandContext();
+              const composeCommand = new (await import('../commands/ComposeCommand')).ComposeCommand(context);
+              const result = await composeCommand.execute(['analyze', firstFile.path]);
+
+              if (result.success) {
+                console.log(result.output);
+              } else {
+                this.logger.error(result.error || 'Erro desconhecido');
+              }
+            }
+          } else {
+            // Multiple files, let user choose
+            console.log(this.i18n.t('compose.available_files'));
+            foundFiles.slice(0, 10).forEach((file, index) => {
+              const envText = file.environment ? ` (${file.environment})` : '';
+              console.log(`${index + 1}. ${file.relativePath}${envText}`);
+            });
+
+            const choice = await this.askQuestion(this.i18n.t('compose.select_file_to_analyze'));
+            const selectedIndex = parseInt(choice) - 1;
+
+            if (selectedIndex >= 0 && selectedIndex < foundFiles.length) {
+              const selectedFile = foundFiles[selectedIndex];
+              if (selectedFile) {
+                const context = this.createCommandContext();
+                const composeCommand = new (await import('../commands/ComposeCommand')).ComposeCommand(context);
+                const result = await composeCommand.execute(['analyze', selectedFile.path]);
+
+                if (result.success) {
+                  console.log(result.output);
+                } else {
+                  this.logger.error(result.error || 'Erro desconhecido');
+                }
+              }
+            } else {
+              this.logger.error(this.i18n.t('error.invalid_choice'));
+            }
+          }
+        }
+      },
+      {
+        key: (optionKey++).toString(),
+        label: this.i18n.t('command.compose_validate'),
+        category: '📄 ' + this.i18n.t('command.compose_management'),
+        action: async () => {
+          // Similar to analyze, but for validation
+          const fileUtils = this.dockerPilot.getFileUtils();
+          const foundFiles = await fileUtils.findDockerComposeFilesWithInfo(undefined, {
+            maxDepth: 6,
+            includeVariants: true,
+            includeEmptyFiles: false
+          });
+
+          if (foundFiles.length === 0) {
+            this.logger.warn(this.i18n.t('compose.no_files_found'));
+            return;
+          }          if (foundFiles.length === 1) {
+            const firstFile = foundFiles[0];
+            if (firstFile) {
+              const context = this.createCommandContext();
+              const composeCommand = new (await import('../commands/ComposeCommand')).ComposeCommand(context);
+              const result = await composeCommand.execute(['validate', firstFile.path]);
+
+              if (result.success) {
+                console.log(result.output);
+              } else {
+                this.logger.error(result.error || 'Erro desconhecido');
+              }
+            }
+          } else {
+            console.log(this.i18n.t('compose.available_files'));
+            foundFiles.slice(0, 10).forEach((file, index) => {
+              const envText = file.environment ? ` (${file.environment})` : '';
+              console.log(`${index + 1}. ${file.relativePath}${envText}`);
+            });
+
+            const choice = await this.askQuestion(this.i18n.t('compose.select_file_to_validate'));
+            const selectedIndex = parseInt(choice) - 1;
+
+            if (selectedIndex >= 0 && selectedIndex < foundFiles.length) {
+              const selectedFile = foundFiles[selectedIndex];
+              if (selectedFile) {
+                const context = this.createCommandContext();
+                const composeCommand = new (await import('../commands/ComposeCommand')).ComposeCommand(context);
+                const result = await composeCommand.execute(['validate', selectedFile.path]);
+
+                if (result.success) {
+                  console.log(result.output);
+                } else {
+                  this.logger.error(result.error || 'Erro desconhecido');
+                }
+              }
+            } else {
+              this.logger.error(this.i18n.t('error.invalid_choice'));
+            }
+          }
+        }
+      },
+      {
+        key: (optionKey++).toString(),
+        label: this.i18n.t('command.compose_services'),
+        category: '📄 ' + this.i18n.t('command.compose_management'),        action: async () => {
+          const context = this.createCommandContext();
+          const composeCommand = new (await import('../commands/ComposeCommand')).ComposeCommand(context);
+          const result = await composeCommand.execute(['services']);
+
+          if (result.success) {
+            console.log(result.output);
+          } else {
+            this.logger.error(result.error || 'Erro desconhecido');
+          }
+        }
       }
-    );    // Service-specific commands
+    );
+
+    // Service-specific commands
     Object.keys(config.services).forEach(serviceName => {
       const serviceDisplayName = serviceName.charAt(0).toUpperCase() + serviceName.slice(1);
 
@@ -656,31 +829,33 @@ export class InteractiveMenu {
    */
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
-  }
-  /**
-   * Auto-detect docker-compose files and suggest setup
+  }  /**
+   * Create context for compose commands
    */
-  private async autoDetectProject(): Promise<void> {
+  private createCommandContext() {
+    return {
+      config: this.dockerPilot.getConfig(),
+      logger: this.logger,
+      workingDirectory: this.dockerPilot.getWorkingDirectory()
+    };
+  }
+
+  /**
+   * Auto-detect docker-compose files recursively and suggest setup
+   */private async autoDetectProject(): Promise<void> {
     try {
       this.updateLanguage();
 
-      const fs = require('fs');
-      const path = require('path');
-      const cwd = process.cwd();
+      console.log(this.i18n.t('compose.recursive_search'));
+      console.log(this.i18n.t('compose.search_depth', { depth: '6' }));
 
-      // Check for docker-compose files
-      const composeFiles = [
-        'docker-compose.yml',
-        'docker-compose.yaml',
-        'compose.yml',
-        'compose.yaml',
-        'docker-compose.dev.yml',
-        'docker-compose.prod.yml'
-      ];
-
-      const foundFiles = composeFiles.filter(file =>
-        fs.existsSync(path.join(cwd, file))
-      );
+      // Use enhanced FileUtils to search recursively for docker-compose files
+      const fileUtils = this.dockerPilot.getFileUtils();
+      const foundFiles = await fileUtils.findDockerComposeFilesWithInfo(undefined, {
+        maxDepth: 6,
+        includeVariants: true,
+        includeEmptyFiles: false
+      });
 
       if (foundFiles.length === 0) {
         console.log(this.i18n.t('autodetect.no_compose_found'));
@@ -693,18 +868,87 @@ export class InteractiveMenu {
           process.exit(0);
         }
         return;
-      }
+      }      if (foundFiles.length === 1) {
+        const file = foundFiles[0];
+        if (file) {
+          console.log(this.i18n.t('autodetect.compose_found', { file: file.relativePath }));
 
-      if (foundFiles.length > 1) {
-        console.log(this.i18n.t('autodetect.multiple_compose_found'));
-        foundFiles.forEach((file, index) => {
-          console.log(`   ${index + 1}. ${file}`);
-        });        console.log(this.i18n.t('autodetect.using_first_default'));
+          // Show detailed file information
+          console.log(this.i18n.t('compose.file_info', { dir: file.directory }));
+          console.log(this.i18n.t('compose.file_size', { size: fileUtils.formatFileSize(file.size) }));
+          console.log(this.i18n.t('compose.file_modified', { modified: file.modified.toLocaleDateString() }));
+
+          if (file.serviceCount > 0) {
+            console.log(`   ${this.i18n.t('compose.services')}: ${file.services.join(', ')}`);
+          }
+
+          if (file.environment) {
+            console.log(`   Environment: ${file.environment}`);
+          }
+        }
       } else {
-        console.log(this.i18n.t('autodetect.compose_found', { file: foundFiles[0] || '' }));
+        console.log(this.i18n.t('compose.multiple_files_found', { count: foundFiles.length }));
+        console.log('');
+        console.log(this.i18n.t('compose.prioritizing_files'));
+        console.log('');
+
+        // Show detailed information about each file (top 5)
+        const topFiles = foundFiles.slice(0, 5);
+        topFiles.forEach((file, index) => {
+          const envText = file.environment ? ` (${file.environment})` : '';
+          const mainFileIndicator = file.isMainFile ? ' 🎯' : '';
+          const depthIndicator = file.depth === 0 ? ' 📁' : ` 📂(${file.depth})`;
+          const servicesText = file.services.length > 0 ? file.services.join(', ') : this.i18n.t('menu.no_services');
+
+          console.log(this.i18n.t('compose.file_details', {
+            index: index + 1,
+            path: file.relativePath,
+            serviceCount: file.serviceCount,
+            services: servicesText
+          }) + mainFileIndicator + depthIndicator + envText);
+
+          console.log(`     📏 ${fileUtils.formatFileSize(file.size)} | 📅 ${file.modified.toLocaleDateString()}`);
+        });
+
+        if (foundFiles.length > 5) {
+          console.log(`   ... e mais ${foundFiles.length - 5} arquivos`);
+        }
+
+        console.log('');
+          // Ask user to select a file or use the first one by default
+        const firstFile = foundFiles[0];
+        if (!firstFile) {
+          console.log(this.i18n.t('error.generic', { message: 'No valid compose file found' }));
+          return;
+        }
+
+        const answer = await this.askQuestion(this.i18n.t('compose.select_file_prompt', {
+          count: Math.min(foundFiles.length, 5),
+          defaultFile: firstFile.relativePath
+        }));
+
+        let selectedFile = firstFile; // Default to first (highest priority)
+
+        if (answer.trim() !== '' && answer !== '1') {
+          const selectedIndex = parseInt(answer) - 1;
+          if (selectedIndex >= 0 && selectedIndex < Math.min(foundFiles.length, 5)) {
+            const fileAtIndex = foundFiles[selectedIndex];
+            if (fileAtIndex) {
+              selectedFile = fileAtIndex;
+              console.log(this.i18n.t('compose.using_selected_file', { file: selectedFile.relativePath }));
+              // Set the selected compose file path
+              await this.dockerPilot.setComposeFile(selectedFile.path);
+            }
+          } else {
+            console.log(this.i18n.t('error.invalid_choice'));
+            console.log(this.i18n.t('compose.using_first_file', { file: firstFile.relativePath }));
+          }
+        } else {
+          console.log(this.i18n.t('compose.using_first_file', { file: selectedFile.relativePath }));
+        }
       }
 
-      // Try to auto-detect services
+      // Try to auto-detect services from the selected compose file
       await this.dockerPilot.detectServices();
 
     } catch (error) {

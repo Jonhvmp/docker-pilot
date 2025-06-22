@@ -127,6 +127,17 @@ export const messages: Messages = {
     'command.start_service': 'Start {service}',
     'command.restart_service': 'Restart {service}',
     'command.logs_service': 'View {service} logs',
+
+    // Compose Management Commands
+    'command.compose_management': 'Compose Files Management',
+    'command.compose_list': 'List docker-compose files',
+    'command.compose_find': 'Find docker-compose files',
+    'command.compose_analyze': 'Analyze docker-compose file',
+    'command.compose_validate': 'Validate docker-compose file',
+    'command.compose_services': 'List services from compose',
+    'command.compose_search_dir_prompt': 'Enter directory to search (or Enter for current): ',
+
+    // General command messages
     'command.detecting_services': '🔍 Detecting project services...',
     'command.detection_complete': '✅ Detection complete! Restarting menu...',
     'command.updating_images': 'Updating images...',
@@ -485,17 +496,66 @@ export const messages: Messages = {
     'autodetect.continue_anyway': 'Do you want to continue anyway? (y/N): ',
     'autodetect.finishing_pilot': 'Finishing Docker Pilot.',
     'autodetect.multiple_compose_found': '🔍 Multiple docker-compose files found:',
-    'autodetect.using_first_default': '💡 Using the first file by default.\n',
-    'autodetect.compose_found': '✅ Docker-compose file found: {file}\n',
+    'autodetect.using_first_default': '💡 Using the first file by default.\n',    'autodetect.compose_found': '✅ Docker-compose file found: {file}\n',
     'autodetect.detection_error': 'Error in auto-detection:',
+
+    // Docker Compose Detection
+    'compose.no_files_found': 'No docker-compose files found in project directory or subdirectories',
+    'compose.multiple_files_found': 'Found {count} docker-compose files in project',
+    'compose.services': 'services',
+    'compose.using_first_file': 'Using primary file: {file}',
+    'compose.file_not_found': 'Docker Compose file not found: {file}',
+    'compose.detecting_services': 'Detecting services from: {file}',
+    'compose.no_services_in_file': 'No services found in Docker Compose file',    'compose.recursive_search': 'Searching recursively for docker-compose files...',
+    'compose.found_in_subdirectory': 'Found docker-compose file in subdirectory: {path}',
+    'compose.select_file': 'Multiple docker-compose files found. Please select one:',
+    'compose.file_details': '{index}. {path} ({serviceCount} services: {services})',
+    'compose.select_file_prompt': 'Select a file (1-{count}) or press Enter for default [{defaultFile}]: ',
+    'compose.using_selected_file': 'Using selected file: {file}',
+    'compose.search_depth': 'Searching with depth: {depth} levels',
+    'compose.found_files_summary': '📋 Found {count} docker-compose files:',
+    'compose.file_info': '   📁 Directory: {dir}',
+    'compose.file_size': '   📏 Size: {size}',
+    'compose.file_modified': '   📅 Modified: {modified}',
+    'compose.prioritizing_files': 'Prioritizing files by: 1) Root directory, 2) Service count, 3) Alphabetical order',
+
+    // Compose Command
+    'cmd.compose.title': '🐳 Docker Compose File Management',
+    'cmd.compose.usage': 'Usage',
+    'cmd.compose.subcommands': 'Subcommands',
+    'cmd.compose.options': 'Options',
+    'cmd.compose.examples': 'Examples',
+    'cmd.compose.list_desc': 'List all docker-compose files in project',
+    'cmd.compose.find_desc': 'Find docker-compose files recursively',
+    'cmd.compose.analyze_desc': 'Analyze a docker-compose file structure',
+    'cmd.compose.validate_desc': 'Validate a docker-compose file',
+    'cmd.compose.services_desc': 'List services in a docker-compose file',
+    'cmd.compose.help_desc': 'Show help for compose command',
+    'cmd.compose.variants_desc': 'Include environment variants (dev, prod, etc.)',
+    'cmd.compose.depth_desc': 'Set maximum search depth (default: 6)',
+
+    // Compose Analysis
+    'compose.file_analysis': 'File Analysis',
+    'compose.file_valid': 'Valid Docker Compose file',
+    'compose.file_invalid': 'Invalid Docker Compose file {file}: {error}',
+    'compose.no_services_warning': 'Warning: No services section found',
+    'compose.no_version_warning': 'Warning: No version specified',
+    'compose.found': 'found',    // Error messages
+    'error.unknown_subcommand': 'Unknown subcommand: {command}',
+    'error.missing_argument': 'Missing required argument: {argument}',
+    'error.failed_to_analyze': 'Failed to analyze {file}: {error}',
     // Language Selection
     'language.welcome': '🌍 Welcome to Docker Pilot!',
     'language.choose_initial': 'Please choose your preferred language:',
-    'language.option_english': '1. English',
-    'language.option_portuguese': '2. Português (Brasil)',
+    'language.option_english': '1. English',    'language.option_portuguese': '2. Português (Brasil)',
     'language.enter_choice': 'Enter your choice (1-2): ',
     'language.invalid_choice': 'Invalid choice. Please enter 1 or 2.',
-    'language.back_menu': 'Returning to main menu...'
+    'language.back_menu': 'Returning to main menu...',
+
+    // Compose interface messages
+    'compose.available_files': 'Available docker-compose files:',
+    'compose.select_file_to_analyze': 'Select file to analyze (1-10): ',
+    'compose.select_file_to_validate': 'Select file to validate (1-10): '
   },
 
   'pt-br': {// Docker & System
@@ -545,12 +605,22 @@ export const messages: Messages = {
     'command.monitor': 'Monitorar em tempo real',
     'command.update': 'Atualizar todas as imagens',
     'command.clean': 'Limpar recursos não utilizados',
-    'command.deep_clean': 'Limpeza profunda',
-    'command.show_config': 'Mostrar configuração',
+    'command.deep_clean': 'Limpeza profunda',    'command.show_config': 'Mostrar configuração',
     'command.advanced_settings': 'Configurações avançadas',
     'command.start_service': 'Iniciar {service}',
     'command.restart_service': 'Reiniciar {service}',
     'command.logs_service': 'Ver logs do {service}',
+
+    // Comandos de Gerenciamento de Compose
+    'command.compose_management': 'Gerenciamento de Arquivos Compose',
+    'command.compose_list': 'Listar arquivos docker-compose',
+    'command.compose_find': 'Buscar arquivos docker-compose',
+    'command.compose_analyze': 'Analisar arquivo docker-compose',
+    'command.compose_validate': 'Validar arquivo docker-compose',
+    'command.compose_services': 'Listar serviços do compose',
+    'command.compose_search_dir_prompt': 'Digite o diretório para buscar (ou Enter para atual): ',
+
+    // Mensagens gerais de comandos
     'command.detecting_services': '🔍 Detectando serviços do projeto...',
     'command.detection_complete': '✅ Detecção concluída! Reiniciando menu...',
     'command.updating_images': 'Atualizando imagens...',
@@ -910,17 +980,67 @@ export const messages: Messages = {
     'autodetect.continue_anyway': 'Deseja continuar mesmo assim? (s/N): ',
     'autodetect.finishing_pilot': 'Finalizando Docker Pilot.',
     'autodetect.multiple_compose_found': '🔍 Múltiplos arquivos docker-compose encontrados:',
-    'autodetect.using_first_default': '💡 Usando o primeiro arquivo por padrão.\n',
-    'autodetect.compose_found': '✅ Arquivo docker-compose encontrado: {file}\n',
+    'autodetect.using_first_default': '💡 Usando o primeiro arquivo por padrão.\n',    'autodetect.compose_found': '✅ Arquivo docker-compose encontrado: {file}\n',
     'autodetect.detection_error': 'Erro na auto-detecção:',
+
+    // Docker Compose Detection
+    'compose.no_files_found': 'Nenhum arquivo docker-compose encontrado no diretório do projeto ou subdiretórios',
+    'compose.multiple_files_found': 'Encontrados {count} arquivos docker-compose no projeto',
+    'compose.services': 'serviços',
+    'compose.using_first_file': 'Usando arquivo principal: {file}',
+    'compose.file_not_found': 'Arquivo Docker Compose não encontrado: {file}',
+    'compose.detecting_services': 'Detectando serviços de: {file}',
+    'compose.no_services_in_file': 'Nenhum serviço encontrado no arquivo Docker Compose',    'compose.recursive_search': 'Buscando recursivamente por arquivos docker-compose...',
+    'compose.found_in_subdirectory': 'Arquivo docker-compose encontrado no subdiretório: {path}',
+    'compose.select_file': 'Múltiplos arquivos docker-compose encontrados. Selecione um:',
+    'compose.file_details': '{index}. {path} ({serviceCount} serviços: {services})',
+    'compose.select_file_prompt': 'Selecione um arquivo (1-{count}) ou pressione Enter para usar o padrão [{defaultFile}]: ',
+    'compose.using_selected_file': 'Usando arquivo selecionado: {file}',
+    'compose.search_depth': 'Buscando com profundidade: {depth} níveis',
+    'compose.found_files_summary': '📋 Encontrados {count} arquivos docker-compose:',
+    'compose.file_info': '   📁 Diretório: {dir}',
+    'compose.file_size': '   📏 Tamanho: {size}',
+    'compose.file_modified': '   📅 Modificado: {modified}',
+    'compose.prioritizing_files': 'Priorizando arquivos por: 1) Diretório raiz, 2) Contagem de serviços, 3) Ordem alfabética',
+
+    // Compose Command
+    'cmd.compose.title': '🐳 Gerenciamento de Arquivos Docker Compose',
+    'cmd.compose.usage': 'Uso',
+    'cmd.compose.subcommands': 'Subcomandos',
+    'cmd.compose.options': 'Opções',
+    'cmd.compose.examples': 'Exemplos',
+    'cmd.compose.list_desc': 'Lista todos os arquivos docker-compose no projeto',
+    'cmd.compose.find_desc': 'Encontra arquivos docker-compose recursivamente',
+    'cmd.compose.analyze_desc': 'Analisa a estrutura de um arquivo docker-compose',
+    'cmd.compose.validate_desc': 'Valida um arquivo docker-compose',
+    'cmd.compose.services_desc': 'Lista serviços em um arquivo docker-compose',
+    'cmd.compose.help_desc': 'Mostra ajuda para o comando compose',
+    'cmd.compose.variants_desc': 'Incluir variantes de ambiente (dev, prod, etc.)',
+    'cmd.compose.depth_desc': 'Define a profundidade máxima de busca (padrão: 6)',
+
+    // Compose Analysis
+    'compose.file_analysis': 'Análise do Arquivo',
+    'compose.file_valid': 'Arquivo Docker Compose válido',
+    'compose.file_invalid': 'Arquivo Docker Compose inválido {file}: {error}',
+    'compose.no_services_warning': 'Aviso: Seção de serviços não encontrada',
+    'compose.no_version_warning': 'Aviso: Versão não especificada',
+    'compose.found': 'encontrado(s)',
+      // Error messages
+    'error.unknown_subcommand': 'Subcomando desconhecido: {command}',
+    'error.missing_argument': 'Argumento obrigatório ausente: {argument}',
+    'error.failed_to_analyze': 'Falha ao analisar {file}: {error}',
 
     // Language Selection
     'language.welcome': '🌍 Bem-vindo ao Docker Pilot!',
-    'language.choose_initial': 'Por favor, escolha seu idioma preferido:',
-    'language.option_english': '1. English',
+    'language.choose_initial': 'Por favor, escolha seu idioma preferido:',    'language.option_english': '1. English',
     'language.option_portuguese': '2. Português (Brasil)',    'language.enter_choice': 'Digite sua escolha (1-2): ',
     'language.invalid_choice': 'Escolha inválida. Digite 1 ou 2.',
-    'language.back_menu': 'Voltando ao menu principal...'
+    'language.back_menu': 'Voltando ao menu principal...',
+
+    // Mensagens da interface de compose
+    'compose.available_files': 'Arquivos docker-compose disponíveis:',
+    'compose.select_file_to_analyze': 'Selecione o arquivo para analisar (1-10): ',
+    'compose.select_file_to_validate': 'Selecione o arquivo para validar (1-10): '
   }
 };
 

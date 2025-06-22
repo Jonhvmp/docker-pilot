@@ -39,11 +39,11 @@ export class ServiceManager {
       workingDirectory,
       composeFile: options.composeFile || this.findComposeFile(workingDirectory)
     };
-  }
-  /**
-   * Find Docker Compose file in current directory
+  }  /**
+   * Find Docker Compose file with enhanced search (synchronous for ServiceManager)
    */
   private findComposeFile(workingDirectory: string = process.cwd()): string {
+    // First try basic files in working directory
     const possibleFiles = [
       'docker-compose.yml',
       'docker-compose.yaml',
@@ -54,11 +54,62 @@ export class ServiceManager {
     for (const file of possibleFiles) {
       const filePath = path.join(workingDirectory, file);
       if (require('fs').existsSync(filePath)) {
+        this.logger.debug(`Found compose file: ${file}`);
         return filePath;
       }
     }
 
-    return 'docker-compose.yml'; // Default fallback
+    // If not found in root, try to search recursively in subdirectories (sync version)
+    const fs = require('fs');
+    const searchInDir = (dir: string, maxDepth: number = 3, currentDepth: number = 0): string | null => {
+      if (currentDepth > maxDepth) return null;
+
+      try {
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+        // First check for compose files in current directory
+        for (const file of possibleFiles) {
+          const filePath = path.join(dir, file);
+          if (fs.existsSync(filePath)) {
+            this.logger.debug(`Found compose file in subdirectory: ${path.relative(workingDirectory, filePath)}`);
+            return filePath;
+          }
+        }
+
+        // Then search subdirectories
+        for (const entry of entries) {
+          if (entry.isDirectory() && !this.shouldSkipDirectory(entry.name)) {
+            const result = searchInDir(path.join(dir, entry.name), maxDepth, currentDepth + 1);
+            if (result) return result;
+          }
+        }
+      } catch (error) {
+        this.logger.debug(`Failed to read directory ${dir}:`, error);
+      }
+
+      return null;
+    };
+
+    const foundFile = searchInDir(workingDirectory);
+    if (foundFile) {
+      return foundFile;
+    }
+
+    this.logger.debug('No compose file found, using default: docker-compose.yml');
+    return path.join(workingDirectory, 'docker-compose.yml'); // Default fallback
+  }
+
+  /**
+   * Check if directory should be skipped during search
+   */
+  private shouldSkipDirectory(dirName: string): boolean {
+    const skipDirectories = [
+      'node_modules', '.git', '.vscode', '.idea', 'dist', 'build',
+      'target', 'out', 'tmp', 'temp', '.next', '.nuxt', 'coverage',
+      '__pycache__', '.pytest_cache', 'venv', 'env', '.env',
+      'vendor', 'logs', '.docker'
+    ];
+    return skipDirectories.includes(dirName) || dirName.startsWith('.');
   }
   /**
    * Create safe options for Docker commands
@@ -523,5 +574,12 @@ export class ServiceManager {
    */
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Get current options
+   */
+  getOptions(): ServiceManagerOptions {
+    return { ...this.options };
   }
 }

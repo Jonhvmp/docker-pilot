@@ -19,7 +19,8 @@ import {
   ConfigCommand,
   RestartCommand,
   CleanCommand,
-  PullCommand
+  PullCommand,
+  ComposeCommand
 } from './commands';
 import { Logger } from './utils/Logger';
 import { InteractiveMenu } from './interactive/InteractiveMenu';
@@ -144,7 +145,7 @@ class DockerPilotCLI {
       config: config as DockerPilotConfig, // Type assertion since we guaranteed it's not null above
       logger: this.logger,
       workingDirectory: this.dockerPilot.getWorkingDirectory()
-    };// Register core commands
+    };    // Register core commands
     this.commands.set('up', new UpCommand(context));
     this.commands.set('down', new DownCommand(context));
     this.commands.set('status', new StatusCommand(context));
@@ -157,6 +158,7 @@ class DockerPilotCLI {
     this.commands.set('restart', new RestartCommand(context));
     this.commands.set('clean', new CleanCommand(context));
     this.commands.set('pull', new PullCommand(context));
+    this.commands.set('compose', new ComposeCommand(context));
 
     // Add aliases
     this.commands.set('start', this.commands.get('up'));
