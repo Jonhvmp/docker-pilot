@@ -347,7 +347,6 @@ export class ConfigManager {
     // Fall back to current directory name
     return path.basename(process.cwd()) || 'docker-pilot-project';
   }
-
   /**
    * Deep merge configuration objects
    */
@@ -356,8 +355,12 @@ export class ConfigManager {
 
     for (const [key, value] of Object.entries(updates)) {
       if (value !== undefined && value !== null) {
-        if (typeof value === 'object' && !Array.isArray(value) && key in merged) {
-          // Deep merge objects
+        if (key === 'services') {
+          // For services, always replace completely instead of merging
+          // This ensures clean replacement when autoDetectServices(true) is called
+          (merged as any)[key] = value;
+        } else if (typeof value === 'object' && !Array.isArray(value) && key in merged) {
+          // Deep merge other objects
           (merged as any)[key] = { ...(merged as any)[key], ...value };
         } else {
           // Direct assignment for primitives and arrays
@@ -367,7 +370,7 @@ export class ConfigManager {
     }
 
     return merged;
-  }  /**
+  }/**
    * Detect Docker Compose services from file or search recursively with enhanced search
    */
   async detectServicesFromCompose(composePath?: string): Promise<Record<string, any>> {
@@ -426,9 +429,7 @@ export class ConfigManager {
       const detectedServices: Record<string, any> = {};
 
       for (const [serviceName, serviceConfig] of Object.entries(composeData.services)) {
-        const config = serviceConfig as any;
-
-        detectedServices[serviceName] = {
+        const config = serviceConfig as any;        detectedServices[serviceName] = {
           description: `Auto-detected ${serviceName} service`,
           healthCheck: !!config.healthcheck,
           backupEnabled: this.shouldEnableBackup(serviceName),
@@ -440,7 +441,7 @@ export class ConfigManager {
             volumes: config.volumes
           }),
           ...(config.environment && {
-            environment: config.environment
+            environment: this.normalizeEnvironmentVariables(config.environment)
           })
         };
       }
@@ -453,7 +454,6 @@ export class ConfigManager {
       return {};
     }
   }
-
   /**
    * Determine if backup should be enabled for service
    */
@@ -466,6 +466,32 @@ export class ConfigManager {
     return backupCandidates.some(candidate =>
       serviceName.toLowerCase().includes(candidate)
     );
+  }
+
+  /**
+   * Normalize environment variables to ensure all values are strings
+   */
+  private normalizeEnvironmentVariables(env: any): Record<string, string> {
+    if (!env || typeof env !== 'object') {
+      return {};
+    }
+
+    const normalizedEnv: Record<string, string> = {};
+    
+    for (const [key, value] of Object.entries(env)) {
+      // Convert any value to string
+      if (value === null || value === undefined) {
+        normalizedEnv[key] = '';
+      } else if (typeof value === 'boolean') {
+        normalizedEnv[key] = value.toString();
+      } else if (typeof value === 'number') {
+        normalizedEnv[key] = value.toString();
+      } else {
+        normalizedEnv[key] = String(value);
+      }
+    }
+
+    return normalizedEnv;
   }
   /**
    * Extract port number from Docker port mapping
@@ -490,44 +516,85 @@ export class ConfigManager {
       return null;
     }
   }
-
   /**
    * Auto-detect and update services from Docker Compose
-   */
-  async autoDetectServices(): Promise<DockerPilotConfig> {
-    const detectedServices = await this.detectServicesFromCompose();
+   */  async autoDetectServices(replaceExisting: boolean = false): Promise<DockerPilotConfig> {
+    // Use primary compose file if available
+    let composePath: string | undefined;
+
+    if (this.config?.primaryComposeFile) {
+      composePath = this.config.primaryComposeFile;
+      this.logger.info(`Using primary compose file: ${path.relative(process.cwd(), composePath)}`);
+    }
+
+    const detectedServices = await this.detectServicesFromCompose(composePath);
 
     if (Object.keys(detectedServices).length === 0) {
       this.logger.info('No services detected to add');
       return this.getConfig();
     }
 
-    // Merge detected services with existing ones
     const currentServices = this.config?.services || {};
-    const mergedServices = { ...currentServices };
-
+    let mergedServices: Record<string, any>;
     let addedCount = 0;
     let updatedCount = 0;
+    let replacedCount = 0;
+    let removedCount = 0;
 
-    for (const [serviceName, serviceConfig] of Object.entries(detectedServices)) {
-      if (serviceName in mergedServices) {
-        // Update existing service with detected information
-        mergedServices[serviceName] = {
-          ...serviceConfig,
-          ...mergedServices[serviceName], // Keep user customizations
-          detected: true
-        };
-        updatedCount++;
-      } else {
-        // Add new service
+    if (replaceExisting) {
+      // Start fresh - only include detected services
+      mergedServices = {};
+      
+      // Add all detected services
+      for (const [serviceName, serviceConfig] of Object.entries(detectedServices)) {
         mergedServices[serviceName] = serviceConfig;
-        addedCount++;
+        
+        if (serviceName in currentServices) {
+          replacedCount++;
+        } else {
+          addedCount++;
+        }
       }
-    }
-
-    if (addedCount > 0 || updatedCount > 0) {
+      
+      // Count removed services
+      removedCount = Object.keys(currentServices).filter(
+        serviceName => !(serviceName in detectedServices)
+      ).length;
+      
+    } else {
+      // Merge mode - start with current services
+      mergedServices = { ...currentServices };
+      
+      for (const [serviceName, serviceConfig] of Object.entries(detectedServices)) {
+        if (serviceName in currentServices) {
+          // Update existing service with detected information
+          mergedServices[serviceName] = {
+            ...serviceConfig,
+            ...mergedServices[serviceName], // Keep user customizations
+            detected: true
+          };
+          updatedCount++;
+        } else {
+          // Add new service
+          mergedServices[serviceName] = serviceConfig;
+          addedCount++;
+        }
+      }
+    }    if (addedCount > 0 || updatedCount > 0 || replacedCount > 0 || removedCount > 0) {
       const result = await this.updateConfig({ services: mergedServices });
-      this.logger.success(`Services updated: ${addedCount} added, ${updatedCount} updated`);
+
+      if (replaceExisting) {
+        const totalDetected = Object.keys(detectedServices).length;
+        if (removedCount > 0) {
+          this.logger.success(`Services synchronized: ${totalDetected} services from compose file (${addedCount} new, ${replacedCount} replaced, ${removedCount} removed)`);
+        } else if (replacedCount > 0) {
+          this.logger.success(`Services synchronized: ${totalDetected} services from compose file (${addedCount} new, ${replacedCount} replaced)`);
+        } else {
+          this.logger.success(`Services synchronized: ${totalDetected} services from compose file`);
+        }
+      } else {
+        this.logger.success(`Services updated: ${addedCount} added, ${updatedCount} updated`);
+      }
       return result;
     } else {
       this.logger.info('All services are already configured');

@@ -126,20 +126,21 @@ export const messages: Messages = {
     'command.advanced_settings': 'Advanced settings',
     'command.start_service': 'Start {service}',
     'command.restart_service': 'Restart {service}',
-    'command.logs_service': 'View {service} logs',
-
-    // Compose Management Commands
+    'command.logs_service': 'View {service} logs',    // Compose Management Commands
     'command.compose_management': 'Compose Files Management',
     'command.compose_list': 'List docker-compose files',
     'command.compose_find': 'Find docker-compose files',
     'command.compose_analyze': 'Analyze docker-compose file',
     'command.compose_validate': 'Validate docker-compose file',
     'command.compose_services': 'List services from compose',
-    'command.compose_search_dir_prompt': 'Enter directory to search (or Enter for current): ',
-
-    // General command messages
+    'command.compose_set_primary': 'Set primary compose file',
+    'command.compose_change_primary': 'Change primary compose file',
+    'command.compose_show_primary': 'Show current primary file',
+    'command.compose_search_dir_prompt': 'Enter directory to search (or Enter for current): ',    // General command messages
     'command.detecting_services': '🔍 Detecting project services...',
     'command.detection_complete': '✅ Detection complete! Restarting menu...',
+    'command.current_services': 'Current services: {services}',
+    'command.replace_services_question': 'Replace current services with those from compose file? (y/N): ',
     'command.updating_images': 'Updating images...',
     'command.update_complete': 'Update completed!',
     'command.deep_clean_warning': '⚠️ This will remove unused images, volumes and networks. Continue? (y/N): ',
@@ -518,6 +519,15 @@ export const messages: Messages = {
     'compose.file_size': '   📏 Size: {size}',
     'compose.file_modified': '   📅 Modified: {modified}',
     'compose.prioritizing_files': 'Prioritizing files by: 1) Root directory, 2) Service count, 3) Alphabetical order',
+    'compose.file_set': 'Primary compose file set to: {file}',
+    'compose.file_saved': 'Compose file selection saved successfully',
+    'compose.no_primary_file': 'No primary compose file configured',    'compose.current_primary': 'Current primary file: {file}',
+    'compose.choose_new_primary': 'Choose new primary compose file:',
+    'compose.primary_changed': 'Primary compose file changed to: {file}',
+    'compose.persistence_menu': 'Compose File Persistence',
+    'compose.keep_primary_or_change': 'Keep current primary file? (Y/n): ',
+    'compose.services_synchronized': 'Services synchronized with primary compose file! ✅',
+    'compose.services_not_reloaded': 'Services were not reloaded. Use "Detect services" in the main menu to synchronize manually.',
 
     // Compose Command
     'cmd.compose.title': '🐳 Docker Compose File Management',
@@ -609,20 +619,21 @@ export const messages: Messages = {
     'command.advanced_settings': 'Configurações avançadas',
     'command.start_service': 'Iniciar {service}',
     'command.restart_service': 'Reiniciar {service}',
-    'command.logs_service': 'Ver logs do {service}',
-
-    // Comandos de Gerenciamento de Compose
+    'command.logs_service': 'Ver logs do {service}',    // Comandos de Gerenciamento de Compose
     'command.compose_management': 'Gerenciamento de Arquivos Compose',
     'command.compose_list': 'Listar arquivos docker-compose',
     'command.compose_find': 'Buscar arquivos docker-compose',
     'command.compose_analyze': 'Analisar arquivo docker-compose',
     'command.compose_validate': 'Validar arquivo docker-compose',
     'command.compose_services': 'Listar serviços do compose',
-    'command.compose_search_dir_prompt': 'Digite o diretório para buscar (ou Enter para atual): ',
-
-    // Mensagens gerais de comandos
+    'command.compose_set_primary': 'Definir arquivo compose principal',
+    'command.compose_change_primary': 'Alterar arquivo compose principal',
+    'command.compose_show_primary': 'Mostrar arquivo principal atual',
+    'command.compose_search_dir_prompt': 'Digite o diretório para buscar (ou Enter para atual): ',    // Mensagens gerais de comandos
     'command.detecting_services': '🔍 Detectando serviços do projeto...',
     'command.detection_complete': '✅ Detecção concluída! Reiniciando menu...',
+    'command.current_services': 'Serviços atuais: {services}',
+    'command.replace_services_question': 'Substituir serviços atuais pelos do arquivo compose? (s/N): ',
     'command.updating_images': 'Atualizando imagens...',
     'command.update_complete': 'Atualização concluída!',
     'command.deep_clean_warning': '⚠️ Isso removerá imagens, volumes e redes não utilizados. Continuar? (s/N): ',
@@ -1002,6 +1013,15 @@ export const messages: Messages = {
     'compose.file_size': '   📏 Tamanho: {size}',
     'compose.file_modified': '   📅 Modificado: {modified}',
     'compose.prioritizing_files': 'Priorizando arquivos por: 1) Diretório raiz, 2) Contagem de serviços, 3) Ordem alfabética',
+    'compose.file_set': 'Arquivo compose principal definido como: {file}',
+    'compose.file_saved': 'Seleção do arquivo compose salva com sucesso',
+    'compose.no_primary_file': 'Nenhum arquivo compose principal configurado',    'compose.current_primary': 'Arquivo principal atual: {file}',
+    'compose.choose_new_primary': 'Escolha novo arquivo compose principal:',
+    'compose.primary_changed': 'Arquivo compose principal alterado para: {file}',
+    'compose.persistence_menu': 'Persistência de Arquivo Compose',
+    'compose.keep_primary_or_change': 'Manter arquivo principal atual? (S/n): ',
+    'compose.services_synchronized': 'Serviços sincronizados com o arquivo compose principal! ✅',
+    'compose.services_not_reloaded': 'Serviços não foram recarregados. Use "Detectar serviços" no menu principal para sincronizar manualmente.',
 
     // Compose Command
     'cmd.compose.title': '🐳 Gerenciamento de Arquivos Docker Compose',

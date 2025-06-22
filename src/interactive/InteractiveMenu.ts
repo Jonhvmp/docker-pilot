@@ -4,6 +4,7 @@
  */
 
 import * as readline from 'readline';
+import * as path from 'path';
 import { DockerPilot } from '../core/DockerPilot';
 import { Logger } from '../utils/Logger';
 import { DockerPilotConfig } from '../types';
@@ -255,11 +256,28 @@ export class InteractiveMenu {
       {
         key: (optionKey++).toString(),
         label: this.i18n.t('command.setup'),
-        category: '🚀 ' + this.i18n.t('command.basic'),
-        action: async () => {
-          console.log(this.i18n.t('command.detecting_services'));
-          await this.dockerPilot.detectServices();
+        category: '🚀 ' + this.i18n.t('command.basic'),        action: async () => {          console.log(this.i18n.t('command.detecting_services'));
+
+          // Ask user if they want to replace existing services
+          const config = this.dockerPilot.getConfig();
+          const currentServices = config ? Object.keys(config.services) : [];
+
+          let replaceExisting = false;
+          if (currentServices.length > 0) {
+            console.log('');
+            console.log(this.i18n.t('command.current_services', { services: currentServices.join(', ') }));
+            const replaceAnswer = await this.askQuestion(this.i18n.t('command.replace_services_question'));
+            replaceExisting = ['s', 'sim', 'y', 'yes'].some(ans => replaceAnswer.toLowerCase() === ans);
+          } else {
+            // If no current services, always replace (sync)
+            replaceExisting = true;
+          }
+
+          await this.dockerPilot.detectServices(replaceExisting);
           console.log(this.i18n.t('command.detection_complete'));
+          
+          // Show updated service status after detection
+          await this.displayServiceStatus();
           await this.sleep(2000);
           this.clearScreen();
           this.showWelcome();
@@ -634,6 +652,30 @@ export class InteractiveMenu {
           } else {
             this.logger.error(result.error || 'Erro desconhecido');
           }
+        }      }
+    );
+
+    // Compose file management commands
+    options.push(
+      {
+        key: (optionKey++).toString(),
+        label: this.i18n.t('command.compose_show_primary'),
+        category: '📄 ' + this.i18n.t('command.compose_management'),
+        action: async () => {
+          const primaryFile = this.dockerPilot.getPrimaryComposeFile();
+          if (primaryFile) {
+            console.log(this.i18n.t('compose.current_primary', { file: path.relative(process.cwd(), primaryFile) }));
+          } else {
+            console.log(this.i18n.t('compose.no_primary_file'));
+          }
+        }
+      },
+      {
+        key: (optionKey++).toString(),
+        label: this.i18n.t('command.compose_change_primary'),
+        category: '📄 ' + this.i18n.t('command.compose_management'),
+        action: async () => {
+          await this.selectAndSetPrimaryComposeFile();
         }
       }
     );
@@ -839,12 +881,35 @@ export class InteractiveMenu {
       workingDirectory: this.dockerPilot.getWorkingDirectory()
     };
   }
-
   /**
    * Auto-detect docker-compose files recursively and suggest setup
-   */private async autoDetectProject(): Promise<void> {
+   */
+  private async autoDetectProject(): Promise<void> {
     try {
       this.updateLanguage();
+
+      // Check if primary compose file is already configured
+      if (this.dockerPilot.hasPrimaryComposeFile()) {
+        const primaryFile = this.dockerPilot.getPrimaryComposeFile();
+        if (primaryFile) {
+          console.log(this.i18n.t('compose.current_primary', { file: path.relative(process.cwd(), primaryFile) }));
+          console.log('');
+
+          // Ask if user wants to change or keep current
+          const answer = await this.askQuestion(this.i18n.t('compose.keep_primary_or_change'));
+          const keepCurrent = ['s', 'sim', 'y', 'yes', ''].some(ans => answer.toLowerCase() === ans);          if (keepCurrent) {
+            // Use current primary file and synchronize services automatically
+            console.log(this.i18n.t('command.detecting_services'));
+            await this.dockerPilot.detectServices(true); // Always replace to ensure sync
+            console.log(this.i18n.t('command.detection_complete'));
+            console.log('');
+            console.log(this.i18n.t('compose.services_synchronized'));
+            await this.displayServiceStatus();
+            return;
+          }
+          // If not keeping current, continue with detection and selection
+        }
+      }
 
       console.log(this.i18n.t('compose.recursive_search'));
       console.log(this.i18n.t('compose.search_depth', { depth: '6' }));
@@ -868,7 +933,9 @@ export class InteractiveMenu {
           process.exit(0);
         }
         return;
-      }      if (foundFiles.length === 1) {
+      }
+
+      if (foundFiles.length === 1) {
         const file = foundFiles[0];
         if (file) {
           console.log(this.i18n.t('autodetect.compose_found', { file: file.relativePath }));
@@ -885,6 +952,9 @@ export class InteractiveMenu {
           if (file.environment) {
             console.log(`   Environment: ${file.environment}`);
           }
+
+          // Set as primary compose file and persist
+          await this.dockerPilot.setPrimaryComposeFile(file.path);
         }
       } else {
         console.log(this.i18n.t('compose.multiple_files_found', { count: foundFiles.length }));
@@ -915,7 +985,8 @@ export class InteractiveMenu {
         }
 
         console.log('');
-          // Ask user to select a file or use the first one by default
+
+        // Ask user to select a file or use the first one by default
         const firstFile = foundFiles[0];
         if (!firstFile) {
           console.log(this.i18n.t('error.generic', { message: 'No valid compose file found' }));
@@ -936,8 +1007,6 @@ export class InteractiveMenu {
             if (fileAtIndex) {
               selectedFile = fileAtIndex;
               console.log(this.i18n.t('compose.using_selected_file', { file: selectedFile.relativePath }));
-              // Set the selected compose file path
-              await this.dockerPilot.setComposeFile(selectedFile.path);
             }
           } else {
             console.log(this.i18n.t('error.invalid_choice'));
@@ -946,10 +1015,11 @@ export class InteractiveMenu {
         } else {
           console.log(this.i18n.t('compose.using_first_file', { file: selectedFile.relativePath }));
         }
-      }
 
-      // Try to auto-detect services from the selected compose file
-      await this.dockerPilot.detectServices();
+        // Set as primary compose file and persist
+        await this.dockerPilot.setPrimaryComposeFile(selectedFile.path);
+      }      // Try to auto-detect services from the selected compose file
+      await this.dockerPilot.detectServices(true); // Replace existing with services from compose file
 
     } catch (error) {
       this.logger.debug(this.i18n.t('autodetect.detection_error'), error);
@@ -1382,6 +1452,99 @@ export class InteractiveMenu {
     const config = this.dockerPilot.getConfig();
     if (config?.language) {
       this.i18n.setLanguage(config.language);
+    }
+  }
+
+  /**
+   * Select and set primary compose file
+   */
+  private async selectAndSetPrimaryComposeFile(): Promise<void> {
+    try {
+      this.clearScreen();
+      console.log('='.repeat(60));
+      console.log(this.i18n.t('compose.persistence_menu'));
+      console.log('='.repeat(60));
+      console.log('');
+
+      // Search for available compose files
+      const fileUtils = this.dockerPilot.getFileUtils();
+      const foundFiles = await fileUtils.findDockerComposeFilesWithInfo(undefined, {
+        maxDepth: 6,
+        includeVariants: true,
+        includeEmptyFiles: false
+      });
+
+      if (foundFiles.length === 0) {
+        console.log(this.i18n.t('compose.no_files_found'));
+        return;
+      }
+
+      // Show current primary file if exists
+      const currentPrimary = this.dockerPilot.getPrimaryComposeFile();
+      if (currentPrimary) {
+        console.log(this.i18n.t('compose.current_primary', { file: path.relative(process.cwd(), currentPrimary) }));
+        console.log('');
+      }
+
+      console.log(this.i18n.t('compose.choose_new_primary'));
+      console.log('');
+
+      // Show available files
+      foundFiles.slice(0, 10).forEach((file, index) => {
+        const envText = file.environment ? ` (${file.environment})` : '';
+        const mainFileIndicator = file.isMainFile ? ' 🎯' : '';
+        const currentIndicator = currentPrimary && file.path === currentPrimary ? ' ⭐' : '';
+
+        console.log(`${index + 1}. ${file.relativePath}${envText}${mainFileIndicator}${currentIndicator}`);
+        console.log(`     📏 ${fileUtils.formatFileSize(file.size)} | ⚙️ ${file.serviceCount} services | 📅 ${file.modified.toLocaleDateString()}`);
+      });
+
+      if (foundFiles.length > 10) {
+        console.log(`   ... e mais ${foundFiles.length - 10} arquivos`);
+      }
+
+      console.log('');
+      console.log('0. Cancel');
+      console.log('');      const choice = await this.askQuestion('Select new primary file (1-10): ');
+
+      if (choice === '0') {
+        console.log(this.i18n.t('compose.operation_cancelled'));
+        return;
+      }
+
+      const selectedIndex = parseInt(choice) - 1;
+      if (selectedIndex >= 0 && selectedIndex < Math.min(foundFiles.length, 10)) {
+        const selectedFile = foundFiles[selectedIndex];
+        if (selectedFile) {
+          console.log('');
+          console.log(this.i18n.t('compose.setting_primary', { file: selectedFile.relativePath }));
+
+          // Set as primary compose file and persist
+          await this.dockerPilot.setPrimaryComposeFile(selectedFile.path);
+
+          console.log(this.i18n.t('compose.primary_set_success', { file: selectedFile.relativePath }));
+          console.log('');
+
+          // Ask if user wants to reload/re-detect services
+          const reloadAnswer = await this.askQuestion(this.i18n.t('compose.reload_services_question'));
+          const shouldReload = ['s', 'sim', 'y', 'yes'].some(ans => reloadAnswer.toLowerCase() === ans);          if (shouldReload) {
+            console.log(this.i18n.t('command.detecting_services'));
+            await this.dockerPilot.detectServices(true); // Replace existing with services from new primary file
+            console.log(this.i18n.t('command.detection_complete'));
+            console.log('');
+            console.log(this.i18n.t('compose.services_synchronized'));
+
+            // Show updated service status
+            await this.displayServiceStatus();
+          } else {
+            console.log(this.i18n.t('compose.services_not_reloaded'));
+          }
+        }
+      } else {
+        console.log(this.i18n.t('error.invalid_choice'));
+      }
+        } catch (error) {
+      this.logger.error(this.i18n.t('compose.error_setting_primary'), error);
     }
   }
 }

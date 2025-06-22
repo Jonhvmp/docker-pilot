@@ -28,6 +28,7 @@ export const ServiceConfigSchema = z.object({
   scale: z.number().min(1).default(1),
   cpu_limit: z.string().optional(),
   memory_limit: z.string().optional(),
+  detected: z.boolean().optional(), // Flag to indicate auto-detected services
   build: z.object({
     context: z.string(),
     dockerfile: z.string().optional(),
@@ -132,6 +133,7 @@ export const DockerPilotConfigSchema = z.object({
   projectName: z.string().min(1),
   dockerCompose: z.string().default('docker compose'),
   configVersion: z.string().default('1.0'),
+  primaryComposeFile: z.string().optional(),
   services: z.record(ServiceConfigSchema).default({}),
   plugins: z.array(z.string()).default([]),
   cli: CLIConfigSchema.default({}),

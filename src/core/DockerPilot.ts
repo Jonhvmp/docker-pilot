@@ -122,13 +122,16 @@ export class DockerPilot extends EventEmitter {
       // Configure i18n based on config
       if (this.config.language) {
         this.i18n.setLanguage(this.config.language);
-      }
-
-      // Initialize service manager
+      }      // Initialize service manager
       this.serviceManager = new ServiceManager(this.config, {
         projectName: this.config.projectName,
         workingDirectory: this.options.workingDirectory
-      });      this.initialized = true;
+      });
+
+      // Initialize with primary compose file if available
+      await this.initializeWithPrimaryComposeFile();
+
+      this.initialized = true;
       this.emit('initialized', { config: this.config, dockerInfo });
 
       this.logger.success(this.i18n.t('docker.initialized'));
@@ -406,6 +409,65 @@ export class DockerPilot extends EventEmitter {
     this.logger.info(this.i18n.t('compose.file_set', { file: path.relative(process.cwd(), composeFilePath) }));
   }
 
+  /**
+   * Set primary compose file and persist it
+   */
+  async setPrimaryComposeFile(composeFilePath: string): Promise<void> {
+    if (!this.serviceManager) {
+      throw new Error(this.i18n.t('error.service_manager_unavailable'));
+    }
+
+    // Validate file exists
+    if (!(await this.fileUtils.exists(composeFilePath))) {
+      throw new Error(this.i18n.t('compose.file_not_found', { file: composeFilePath }));
+    }
+
+    // Update service manager options
+    this.serviceManager = new ServiceManager(this.config!, {
+      ...this.serviceManager.getOptions(),
+      composeFile: composeFilePath
+    });
+
+    // Save to configuration
+    await this.updateConfig({
+      primaryComposeFile: composeFilePath
+    });
+
+    this.logger.success(this.i18n.t('compose.file_set', { file: path.relative(process.cwd(), composeFilePath) }));
+    this.logger.success(this.i18n.t('compose.file_saved'));
+  }
+
+  /**
+   * Get primary compose file
+   */
+  getPrimaryComposeFile(): string | null {
+    return this.config?.primaryComposeFile || null;
+  }
+
+  /**
+   * Check if primary compose file is configured
+   */
+  hasPrimaryComposeFile(): boolean {
+    return !!(this.config?.primaryComposeFile);
+  }
+
+  /**
+   * Initialize with primary compose file if available
+   */
+  private async initializeWithPrimaryComposeFile(): Promise<void> {
+    if (this.config?.primaryComposeFile) {
+      // Check if file still exists
+      if (await this.fileUtils.exists(this.config.primaryComposeFile)) {
+        await this.setComposeFile(this.config.primaryComposeFile);
+        this.logger.info(this.i18n.t('compose.current_primary', { file: path.relative(process.cwd(), this.config.primaryComposeFile) }));
+      } else {
+        this.logger.warn(this.i18n.t('compose.file_not_found', { file: this.config.primaryComposeFile }));
+        // Clear invalid primary file
+        await this.updateConfig({ primaryComposeFile: undefined });
+      }
+    }
+  }
+
   // ============================================================================
   // CONFIGURATION METHODS
   // ============================================================================
@@ -469,11 +531,10 @@ export class DockerPilot extends EventEmitter {
 
   /**
    * Auto-detect services from Docker Compose file
-   */
-  async detectServices(): Promise<DockerPilotConfig> {
+   */  async detectServices(replaceExisting: boolean = false): Promise<DockerPilotConfig> {
     await this.ensureInitialized();
 
-    const updatedConfig = await this.configManager.autoDetectServices();
+    const updatedConfig = await this.configManager.autoDetectServices(replaceExisting);
     this.config = updatedConfig;
 
     if (this.serviceManager) {
