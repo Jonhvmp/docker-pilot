@@ -1,0 +1,146 @@
+site_name: "Docker Pilot"
+site_description: "🐳 Advanced Docker Compose management tool with interactive CLI, multi-language support, and plugin system"
+site_author: "Docker Pilot Team"
+site_url: "https://docker-pilot.dev"
+
+repo_name: "docker-pilot"
+repo_url: "https://github.com/jonhvmp/docker-pilot"
+edit_uri: "edit/main/docs/"
+
+copyright: "Copyright &copy; 2025 Docker Pilot Team"
+
+theme:
+  name: material
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.indexes
+    - toc.follow
+    - toc.integrate
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.tooltips
+  icon:
+    repo: fontawesome/brands/github
+    logo: material/docker
+
+extra:
+  version:
+    provider: mike
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/jonhvmp/docker-pilot
+    - icon: fontawesome/brands/docker
+      link: https://hub.docker.com/r/dockerpilot/cli
+  generator: false
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      user: Jonhvmp
+      repo: docker-pilot
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+plugins:
+  - search:
+      lang: en
+  - minify:
+      minify_html: true
+  - git-revision-date-localized:
+      enable_creation_date: true
+  - macros
+  - glightbox
+  - awesome-pages
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quick Start: getting-started/quick-start.md
+    - Configuration: getting-started/configuration.md
+    - First Steps: getting-started/first-steps.md
+  - User Guide:
+    - CLI Usage: user-guide/cli-usage.md
+    - Interactive Menu: user-guide/interactive-menu.md
+    - Commands: user-guide/commands.md
+    - Multi-language Support: user-guide/i18n.md
+    - Configuration Files: user-guide/config-files.md
+  - Advanced:
+    - Plugin System: advanced/plugins.md
+    - Custom Commands: advanced/custom-commands.md
+    - Automation: advanced/automation.md
+    - Docker Integration: advanced/docker-integration.md
+    - Monitoring: advanced/monitoring.md
+  - Examples:
+    - Basic Examples: examples/basic.md
+    - Advanced Examples: examples/advanced.md
+    - Real-world Projects: examples/projects.md
+    - Plugin Examples: examples/plugins.md
+  - API Reference:
+    - Core Classes: api/core.md
+    - Commands: api/commands.md
+    - Utilities: api/utilities.md
+    - Types: api/types.md
+  - Development:
+    - Contributing: development/contributing.md
+    - Architecture: development/architecture.md
+    - Testing: development/testing.md
+    - Building: development/building.md
+  - Changelog: changelog.md
+  - FAQ: faq.md

@@ -1,0 +1,61 @@
+{
+  "projectName": "docker-pilot",
+  "dockerCompose": "docker compose",
+  "configVersion": "1.0",
+  "services": {
+    "app": {
+      "port": 3000,
+      "path": "./",
+      "description": "Main application service",
+      "healthCheck": true,
+      "backupEnabled": false,
+      "restart": "unless-stopped",
+      "scale": 1
+    }
+  },
+  "plugins": [],
+  "cli": {
+    "version": "1.0.0",
+    "welcomeMessage": "Bem-vindo ao {projectName} Docker Pilot v{version}! 🐳",
+    "goodbyeMessage": "Obrigado por usar o {projectName} Docker Pilot!",
+    "interactiveMode": true,
+    "colorOutput": true,
+    "verboseLogging": false,
+    "confirmDestructiveActions": true
+  },
+  "backup": {
+    "enabled": false,
+    "directory": "./backups",
+    "retention": 7,
+    "services": {}
+  },
+  "monitoring": {
+    "enabled": true,
+    "refreshInterval": 5,
+    "services": [
+      "app"
+    ],
+    "urls": {},
+    "alerts": {
+      "enabled": false,
+      "thresholds": {
+        "cpu": 80,
+        "memory": 80,
+        "disk": 90
+      }
+    }
+  },
+  "development": {
+    "hotReload": true,
+    "debugMode": false,
+    "logLevel": "info",
+    "autoMigrate": false,
+    "seedData": false,
+    "testMode": false,
+    "watchFiles": [],
+    "environment": "development"
+  },
+  "networks": {},
+  "volumes": {},
+  "language": "en"
+}
