@@ -56,7 +56,7 @@
   "bugs": {
     "url": "https://github.com/Jonhvmp/docker-pilot/issues"
   },
-  "homepage": "https://github.com/Jonhvmp/docker-pilot#readme",
+  "homepage": "https://jonhvmp.github.io/docker-pilot/",
   "engines": {
     "node": ">=18.0.0"
   },
