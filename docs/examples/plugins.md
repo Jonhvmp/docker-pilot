@@ -68,7 +68,7 @@ export default class MyPlugin implements Plugin {
   "types": "dist/index.d.ts",
   "keywords": ["docker-pilot", "plugin", "docker"],
   "author": "Seu Nome",
-  "license": "MIT",
+  "license": "ISC",
   "peerDependencies": {
     "@docker-pilot/core": "^1.0.0"
   },

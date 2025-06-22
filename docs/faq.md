@@ -352,7 +352,7 @@ More languages are planned based on community demand.
 
 ### Q: Is Docker Pilot free to use?
 
-**A:** Yes! Docker Pilot is open source under the MIT License, free for both personal and commercial use.
+**A:** Yes! Docker Pilot is open source under the ISC License, free for both personal and commercial use.
 
 ### Q: Can I use Docker Pilot in production?
 
@@ -360,7 +360,7 @@ More languages are planned based on community demand.
 
 ### Q: Can I modify Docker Pilot for my needs?
 
-**A:** Yes! Under the MIT License, you can modify, distribute, and even sell modified versions. See [Contributing](development/contributing.md) for guidelines.
+**A:** Yes! Under the ISC License, you can modify, distribute, and even sell modified versions. See [Contributing](development/contributing.md) for guidelines.
 
 ---
 

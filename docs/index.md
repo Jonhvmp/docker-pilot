@@ -145,7 +145,7 @@ This documentation is organized into several sections:
 
 ## License
 
-Docker Pilot is released under the [MIT License](https://opensource.org/licenses/MIT).
+Docker Pilot is released under the [ISC License](https://opensource.org/licenses/ISC).
 
 ---
 
