@@ -48,6 +48,16 @@ docker-pilot [command] [options] [arguments]
 | `pull` | Pull latest images | `docker-pilot pull --parallel` |
 | `clean`, `cleanup` | Clean Docker resources | `docker-pilot clean --all` |
 
+### Compose File Management **NEW**
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `compose list` | List docker-compose files | `docker-pilot compose list --variants` |
+| `compose find` | Find compose files in directory | `docker-pilot compose find /path/to/project` |
+| `compose analyze` | Analyze compose file structure | `docker-pilot compose analyze docker-compose.yml` |
+| `compose validate` | Validate compose file syntax | `docker-pilot compose validate --all` |
+| `compose services` | List services from compose | `docker-pilot compose services` |
+
 ### Configuration
 
 | Command | Description | Example |
@@ -404,6 +414,122 @@ Docker Pilot uses standard exit codes:
 - `126`: Container command not executable
 - `127`: Container command not found
 - `130`: Process terminated by Ctrl+C
+
+## Compose File Management (NEW)
+
+The `compose` command provides comprehensive management of docker-compose files with recursive discovery and detailed analysis capabilities.
+
+### compose list
+
+List all docker-compose files found recursively in the project directory.
+
+```bash
+# List all compose files with basic information
+docker-pilot compose list
+
+# Include environment variants (dev, prod, test)
+docker-pilot compose list --variants
+
+# Specify custom search depth
+docker-pilot compose list --depth 8
+
+# Search in specific directory
+docker-pilot compose list /path/to/project --variants
+```
+
+**Output Example:**
+```
+Found 3 docker-compose files:
+
+1. docker-compose.yml 🎯📁
+   📏 2.1 KB | 📅 22/06/2025
+   🛠️ 4 services: web, api, database, redis
+
+2. backend/docker-compose.dev.yml (development) 📂(2)
+   📏 1.8 KB | 📅 21/06/2025  
+   🛠️ 2 services: api-dev, database-dev
+```
+
+**Options:**
+- `--variants, -v`: Include environment variants
+- `--depth <n>`: Maximum search depth (default: 6)
+
+### compose find
+
+Search for docker-compose files in a specific directory or project.
+
+```bash
+# Find in current directory
+docker-pilot compose find
+
+# Find in specific path
+docker-pilot compose find /path/to/project
+
+# Simple file path listing
+docker-pilot compose find --simple
+```
+
+### compose analyze
+
+Perform detailed analysis of a docker-compose file structure.
+
+```bash
+# Analyze main compose file (auto-detected)
+docker-pilot compose analyze
+
+# Analyze specific file
+docker-pilot compose analyze docker-compose.yml
+
+# Analyze with full service details
+docker-pilot compose analyze docker-compose.dev.yml --detailed
+```
+
+**Analysis Output:**
+- File size and modification date
+- Compose version
+- Services with images, ports, volumes
+- Networks and volumes defined
+- Dependencies between services
+- Environment variables count
+- Health check configurations
+
+### compose validate
+
+Validate docker-compose file syntax and structure.
+
+```bash
+# Validate main compose file
+docker-pilot compose validate
+
+# Validate specific file
+docker-pilot compose validate docker-compose.prod.yml
+
+# Validate with detailed error reporting
+docker-pilot compose validate --verbose
+```
+
+**Validation Checks:**
+- YAML syntax validation
+- Docker Compose schema compliance
+- Service dependency validation
+- Port conflict detection
+- Required image/build validation
+- Environment variable references
+
+### compose services
+
+List all services defined in docker-compose files.
+
+```bash
+# List services from main compose file
+docker-pilot compose services
+
+# List from specific file
+docker-pilot compose services docker-compose.dev.yml
+
+# Include service details
+docker-pilot compose services --detailed
+```
 
 ## Advanced Usage
 

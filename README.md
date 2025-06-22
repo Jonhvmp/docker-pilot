@@ -24,11 +24,14 @@ Docker Pilot is a modern TypeScript library that makes Docker container manageme
 ### 🎯 Key Features
 
 - 🎮 **Interactive Terminal Menu** - Navigate commands with ease
-- 🌍 **Multi-language Support** - Portuguese & English
+- 📄 **Smart Compose Management** - Recursive discovery and analysis of docker-compose files
+- 🎯 **Intelligent Project Detection** - Auto-detect compose files with smart prioritization
+- 🌍 **Multi-language Support** - Portuguese & English with complete i18n
 - 📦 **TypeScript Native** - Full type safety and IntelliSense
 - ⚡ **Zero Configuration** - Works out of the box
 - 🔌 **Plugin System** - Extensible architecture
 - 📊 **Real-time Monitoring** - Status, logs, and metrics
+- 🔍 **Advanced File Analysis** - Validate, analyze, and manage compose files
 
 ## 🚀 Quick Start
 
@@ -49,9 +52,12 @@ npm install docker-pilot
 docker-pilot
 
 # Or use direct commands
-docker-pilot up          # Start all services
-docker-pilot status      # Check status
-docker-pilot logs app    # View logs
+docker-pilot up              # Start all services
+docker-pilot status          # Check status
+docker-pilot logs app        # View logs
+docker-pilot compose list    # List all compose files
+docker-pilot compose analyze # Analyze compose structure
+docker-pilot compose validate # Validate compose files
 ```
 
 ### As Library
@@ -65,7 +71,53 @@ await pilot.up();              // Start services
 const status = await pilot.status();  // Get status
 ```
 
-## 🎮 Interactive Menu
+## � What's New in v2.0.2
+
+### 📄 Enhanced Docker Compose Management
+
+Docker Pilot now provides **comprehensive docker-compose file management** with intelligent discovery:
+
+```bash
+# List all compose files recursively
+docker-pilot compose list --variants
+
+# Analyze compose file structure
+docker-pilot compose analyze docker-compose.yml
+
+# Validate compose files
+docker-pilot compose validate
+
+# Find compose files in complex projects
+docker-pilot compose find /path/to/project
+```
+
+**Smart Discovery Features:**
+- 🔍 **Recursive Search**: Finds compose files up to 6 levels deep
+- 🎯 **Smart Prioritization**: Identifies main files vs. environment variants
+- 📊 **Detailed Analysis**: Shows services, ports, dependencies, and file info
+- 🌍 **Environment Detection**: Recognizes dev, prod, test variants automatically
+- ✅ **Real-time Validation**: Syntax and structure validation with detailed reports
+
+### 🎯 Intelligent Project Auto-Detection
+
+Starting Docker Pilot now automatically detects your project structure:
+
+```
+🔍 Searching for docker-compose files recursively...
+📁 Search depth: 6 levels
+
+Found 3 docker-compose files:
+
+1. docker-compose.yml 🎯📁
+   📏 2.1 KB | 📅 22/06/2025
+   🛠️ 4 services: web, api, database, redis
+
+2. backend/docker-compose.dev.yml (development) 📂(2)
+   📏 1.8 KB | 📅 21/06/2025
+   🛠️ 2 services: api-dev, database-dev
+```
+
+## �🎮 Interactive Menu
 
 Docker Pilot's standout feature is its **interactive terminal menu** that makes Docker management intuitive:
 
@@ -116,7 +168,7 @@ Switch languages on-the-fly through the advanced settings menu!
 
 - **Node.js** >= 18.0.0
 - **Docker** >= 20.0.0
-- **Docker Compose** >= 2.0.0
+- **Docker Compose** >= 2.0.1
 
 ## 🎯 Use Cases
 

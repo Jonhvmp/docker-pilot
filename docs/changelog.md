@@ -19,7 +19,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced getting started experience
 - Better code examples
 
-## [2.0.0] - 2025-06-22
+## [2.0.2] - 2025-06-22
+
+### Added
+- 📄 **Enhanced Docker Compose File Management**
+  - New `compose` command with comprehensive subcommands (`list`, `find`, `analyze`, `validate`, `services`)
+  - Recursive docker-compose file discovery with configurable depth (up to 6 levels by default)
+  - Smart file prioritization (main files, root directory preference, file size, modification date)
+  - Environment variant detection (dev, prod, test, staging)
+  - Detailed file analysis with service count, dependencies, and configuration details
+  - Real-time file information display (size, modification date, environment type)
+
+- 🎯 **Intelligent Project Auto-Detection**
+  - Automatic scanning of project directory structure on startup
+  - Interactive file selection for multi-compose projects
+  - Visual indicators for main files (🎯), directory depth (📁📂), and file types
+  - Support for compose file variants and overrides
+  - Enhanced project setup with better user guidance
+
+- 🖥️ **Interactive Menu Improvements**
+  - New "Compose Files Management" category in interactive menu
+  - Real-time compose file analysis from menu interface
+  - Enhanced file selection with detailed information display
+  - Improved navigation with contextual help and file details
+  - Better error handling and user feedback
+
+- 🌐 **Extended i18n Support**
+  - Complete translation of all new compose management features
+  - Context-aware error messages and help text
+  - Localized file information display
+  - Multi-language support for technical terms and file analysis
+
+### Improved
+- **FileUtils Enhancement**: Upgraded with async methods for better performance
+- **Better Error Handling**: More descriptive error messages with context
+- **Performance Optimization**: Efficient file scanning with smart caching
+- **Code Organization**: Better separation of concerns with dedicated ComposeCommand
+
+### Technical
+- New `ComposeCommand` class with proper inheritance from `BaseCommand`
+- Enhanced `FileUtils` with recursive file discovery methods
+- Improved `InteractiveMenu` with dynamic compose file integration
+- Updated type definitions for compose file information
+- Comprehensive test coverage for new features
+
+## [2.0.1] - 2025-06-22
 
 ### Added
 - 🌍 **Multi-language Support (i18n)**
@@ -191,7 +235,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Release Date | Key Features |
 |---------|--------------|--------------|
-| 2.0.0 | 2025-06-22 | Multi-language support, enhanced plugins, validation |
+| 2.0.1 | 2025-06-22 | Multi-language support, enhanced plugins, validation |
 | 1.5.0 | 2025-05-15 | Real-time monitoring, advanced cleanup, health checks |
 | 1.4.0 | 2025-04-20 | Service scaling, shell access, log filtering |
 | 1.3.0 | 2025-03-18 | Interactive shell, service operations, validation |
