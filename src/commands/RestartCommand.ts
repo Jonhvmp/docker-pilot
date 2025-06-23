@@ -57,15 +57,22 @@ export class RestartCommand extends BaseCommand {
       this.logger.error(this.i18n.t('cmd.restart.failed', { error: errorMessage }));
       return this.createErrorResult(errorMessage);
     }
-  }
-
-  /**
+  }  /**
    * Restart services using docker compose restart
    */
   private async restartServices(serviceName?: string, options?: Record<string, any>): Promise<string> {
-    try {
-      // Build Docker command
-      const restartArgs = ['docker', 'compose', 'restart'];
+    try {      // Build Docker command
+      const composeFile = this.context.composeFile;
+      const restartArgs = ['docker', 'compose'];
+
+      // Add compose file if available (always should be from context)
+      if (composeFile) {
+        restartArgs.push('-f', composeFile);
+      } else {
+        this.logger.warn('RestartCommand: No compose file in context, command may fail');
+      }
+
+      restartArgs.push('restart');
 
       // Add timeout if specified
       if (options?.['timeout'] || options?.['t']) {

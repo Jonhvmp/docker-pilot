@@ -72,11 +72,19 @@ export class DownCommand extends BaseCommand {
     this.logger.info('  docker-pilot down --volumes         # Stop and remove volumes');
     this.logger.info('  docker-pilot down --remove-orphans  # Stop and remove orphan containers');
   }
-
   private async stopServices(serviceName?: string, options?: Record<string, any>): Promise<string> {
-    try {
-      // Build Docker command
-      const downArgs = ['docker', 'compose', 'down'];
+    try {      // Build Docker command
+      const composeFile = this.context.composeFile;
+      const downArgs = ['docker', 'compose'];
+
+      // Add compose file if available (always should be from context)
+      if (composeFile) {
+        downArgs.push('-f', composeFile);
+      } else {
+        this.logger.warn('DownCommand: No compose file in context, command may fail');
+      }
+
+      downArgs.push('down');
 
       // Add options
       if (options?.['volumes'] || options?.['v']) {

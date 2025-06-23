@@ -30,10 +30,16 @@ export class PullCommand extends BaseCommand {
         this.logger.loading(this.i18n.t('cmd.pull.loading', { service: serviceName }));
       } else {
         this.logger.loading(this.i18n.t('cmd.pull.loading_all'));
+      }      // Build Docker command
+      const composeFile = this.context.composeFile;
+      const pullArgs = ['compose'];// Add compose file if available (always should be from context)
+      if (composeFile) {
+        pullArgs.push('-f', composeFile);
+      } else {
+        this.logger.warn('PullCommand: No compose file in context, command may fail');
       }
 
-      // Build Docker command
-      const pullArgs = ['compose', 'pull'];
+      pullArgs.push('pull');
 
       // Add options
       if (parsedOptions['quiet'] || parsedOptions['q']) {

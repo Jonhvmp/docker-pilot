@@ -7,7 +7,7 @@ import * as readline from 'readline';
 import * as path from 'path';
 import { DockerPilot } from '../core/DockerPilot';
 import { Logger } from '../utils/Logger';
-import { DockerPilotConfig } from '../types';
+import { DockerPilotConfig, CommandContext } from '../types';
 import { I18n } from '../utils/i18n';
 
 export interface MenuOption {
@@ -296,19 +296,12 @@ export class InteractiveMenu {
         label: this.i18n.t('command.stop_all'),
         category: '🚀 ' + this.i18n.t('command.basic'),
         action: async () => {
-          try {
-            // Execute DownCommand directly
-            const currentConfig = this.dockerPilot.getConfig();
-            if (!currentConfig) {
-              this.logger.error('Configuration not available');
+          try {            // Execute DownCommand directly
+            const context = this.createCommandContext();
+            if (!context) {
+              this.logger.error('Failed to create command context');
               return;
             }
-
-            const context = {
-              config: currentConfig,
-              logger: this.logger,
-              workingDirectory: this.dockerPilot.getWorkingDirectory()
-            };
             const { DownCommand } = await import('../commands/DownCommand');
             const downCommand = new DownCommand(context);
 
@@ -336,19 +329,12 @@ export class InteractiveMenu {
         label: this.i18n.t('command.restart_all'),
         category: '🚀 ' + this.i18n.t('command.basic'),
         action: async () => {
-          try {
-            // Execute RestartCommand directly
-            const currentConfig = this.dockerPilot.getConfig();
-            if (!currentConfig) {
-              this.logger.error('Configuration not available');
+          try {            // Execute RestartCommand directly
+            const context = this.createCommandContext();
+            if (!context) {
+              this.logger.error('Failed to create command context');
               return;
             }
-
-            const context = {
-              config: currentConfig,
-              logger: this.logger,
-              workingDirectory: this.dockerPilot.getWorkingDirectory()
-            };
             const { RestartCommand } = await import('../commands/RestartCommand');
             const restartCommand = new RestartCommand(context);
 
@@ -429,19 +415,12 @@ export class InteractiveMenu {
             console.log('3. ' + this.i18n.t('command.logs_tail_custom'));
             console.log('');
 
-            const choice = await this.askQuestion(this.i18n.t('menu.choose') + ' ');
-
-            // Execute LogsCommand directly
-            const config = this.dockerPilot.getConfig();
-            if (!config) {
-              this.logger.error('Configuration not available');
+            const choice = await this.askQuestion(this.i18n.t('menu.choose') + ' ');            // Execute LogsCommand directly
+            const context = this.createCommandContext();
+            if (!context) {
+              this.logger.error('Failed to create command context');
               return;
             }
-
-            const context = {
-              config,
-              logger: this.logger,
-              workingDirectory: this.dockerPilot.getWorkingDirectory()            };
             const { LogsCommand } = await import('../commands/LogsCommand');
             const logsCommand = new LogsCommand(context);
 
@@ -491,18 +470,12 @@ export class InteractiveMenu {
         label: this.i18n.t('command.status'),
         category: '🚀 ' + this.i18n.t('command.basic'),        action: async () => {
           try {
-            // Execute StatusCommand directly to avoid integration issues
-            const config = this.dockerPilot.getConfig();
-            if (!config) {
-              this.logger.error('Configuration not available');
+            const context = this.createCommandContext();
+            if (!context) {
+              this.logger.error('Configuration not available in context');
               return;
             }
-
-            const context = {
-              config,
-              logger: this.logger,
-              workingDirectory: this.dockerPilot.getWorkingDirectory()
-            };
+            
             const { StatusCommand } = await import('../commands/StatusCommand');
             const statusCommand = new StatusCommand(context);
 
@@ -559,14 +532,12 @@ export class InteractiveMenu {
             if (!serviceName) {
               this.logger.error(this.i18n.t('command.no_valid_service'));
               return;
+            }            // Execute ShellCommand directly
+            const context = this.createCommandContext();
+            if (!context) {
+              this.logger.error('Failed to create command context');
+              return;
             }
-
-            // Execute ShellCommand directly
-            const context = {
-              config: currentConfig,
-              logger: this.logger,
-              workingDirectory: this.dockerPilot.getWorkingDirectory()
-            };
             const { ShellCommand } = await import('../commands/ShellCommand');
             const shellCommand = new ShellCommand(context);
 
@@ -625,14 +596,12 @@ export class InteractiveMenu {
             }
 
             console.log('');
-            this.logger.info(`🚀 Executando comando no serviço ${serviceName}: ${command}`);
-
-            // Execute ExecCommand directly
-            const context = {
-              config: currentConfig,
-              logger: this.logger,
-              workingDirectory: this.dockerPilot.getWorkingDirectory()
-            };
+            this.logger.info(`🚀 Executando comando no serviço ${serviceName}: ${command}`);            // Execute ExecCommand directly
+            const context = this.createCommandContext();
+            if (!context) {
+              this.logger.error('Failed to create command context');
+              return;
+            }
             const { ExecCommand } = await import('../commands/ExecCommand');
             const execCommand = new ExecCommand(context);
 
@@ -753,20 +722,13 @@ export class InteractiveMenu {
         key: (optionKey++).toString(),
         label: this.i18n.t('command.show_config'),
         category: '⚙️ ' + this.i18n.t('command.maintenance'),
-        action: async () => {
-          try {
+        action: async () => {          try {
             // Execute ConfigCommand directly
-            const currentConfig = this.dockerPilot.getConfig();
-            if (!currentConfig) {
-              this.logger.error('Configuration not available');
+            const context = this.createCommandContext();
+            if (!context) {
+              this.logger.error('Failed to create command context');
               return;
             }
-
-            const context = {
-              config: currentConfig,
-              logger: this.logger,
-              workingDirectory: this.dockerPilot.getWorkingDirectory()
-            };
             const { ConfigCommand } = await import('../commands/ConfigCommand');
             const configCommand = new ConfigCommand(context);
 
@@ -1015,13 +977,11 @@ export class InteractiveMenu {
               if (!currentConfig) {
                 this.logger.error('Configuration not available');
                 return;
+              }              const context = this.createCommandContext();
+              if (!context) {
+                this.logger.error('Failed to create command context');
+                return;
               }
-
-              const context = {
-                config: currentConfig,
-                logger: this.logger,
-                workingDirectory: this.dockerPilot.getWorkingDirectory()
-              };
               const { RestartCommand } = await import('../commands/RestartCommand');
               const restartCommand = new RestartCommand(context);
 
@@ -1099,12 +1059,11 @@ export class InteractiveMenu {
               if (!config) {
                 this.logger.error('Configuration not available');
                 return;
+              }              const context = this.createCommandContext();
+              if (!context) {
+                this.logger.error('Failed to create command context');
+                return;
               }
-
-              const context = {
-                config,
-                logger: this.logger,
-                workingDirectory: this.dockerPilot.getWorkingDirectory()              };
               const { LogsCommand } = await import('../commands/LogsCommand');
               const logsCommand = new LogsCommand(context);
 
@@ -1319,12 +1278,27 @@ export class InteractiveMenu {
   }  /**
    * Create context for compose commands
    */
-  private createCommandContext() {
-    return {
-      config: this.dockerPilot.getConfig(),
+  private createCommandContext(): CommandContext | null {
+    const config = this.dockerPilot.getConfig();
+    
+    if (!config) {
+      return null;
+    }
+
+    const composeFile = this.dockerPilot.getComposeFile();
+    
+    const context: CommandContext = {
+      config: config,
       logger: this.logger,
       workingDirectory: this.dockerPilot.getWorkingDirectory()
     };
+    
+    // Only add composeFile if it exists
+    if (composeFile) {
+      context.composeFile = composeFile;
+    }
+    
+    return context;
   }
   /**
    * Auto-detect docker-compose files recursively and suggest setup

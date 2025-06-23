@@ -52,9 +52,18 @@ export class ExecCommand extends BaseCommand {
       this.logger.error(`Failed to execute command: ${errorMessage}`);
       return this.createErrorResult(errorMessage);
     }
-  }
-  private async executeCommand(serviceName: string, command: string, options: any): Promise<string> {
-    const execArgs = ['compose', 'exec'];
+  }  private async executeCommand(serviceName: string, command: string, options: any): Promise<string> {
+    const composeFile = this.context.composeFile;
+    const execArgs = ['compose'];
+
+    // Add compose file if available (always should be from context)
+    if (composeFile) {
+      execArgs.push('-f', composeFile);
+    } else {
+      this.logger.warn('ExecCommand: No compose file in context, command may fail');
+    }
+
+    execArgs.push('exec');
 
     // Add options flags
     if (options.detach) {

@@ -203,18 +203,18 @@ export class DockerUtils {
       return [];
     }
   }
-
   /**
    * Get service status from Docker Compose
    */
-  async getServiceStatus(_projectName: string, serviceName?: string): Promise<ServiceStatus[]> {
+  async getServiceStatus(_projectName: string, serviceName?: string, options?: { composeFile?: string }): Promise<ServiceStatus[]> {
     try {
       const args = ['ps', '--format', 'json'];
       if (serviceName) {
         args.push(serviceName);
-      }
-
-      const result = await this.executeComposeCommand('ps', args, { silent: true });
+      }      const result = await this.executeComposeCommand('ps', args, {
+        silent: true,
+        ...(options?.composeFile && { composeFile: options.composeFile })
+      });
 
       if (!result.success || !result.output) {
         return [];
@@ -345,8 +345,7 @@ export class DockerUtils {
 
   /**
    * Get container logs
-   */
-  async getLogs(
+   */  async getLogs(
     serviceName: string,
     options: {
       follow?: boolean;
@@ -354,6 +353,7 @@ export class DockerUtils {
       since?: string;
       until?: string;
       projectName?: string;
+      composeFile?: string;
     } = {}
   ): Promise<ChildProcess | CommandResult> {
     const args = ['logs'];
@@ -367,7 +367,11 @@ export class DockerUtils {
 
     if (options.follow) {
       // For following logs, return the child process
-      const child = spawn('docker', ['compose', ...args], {
+      const composeCmd = options.composeFile
+        ? ['compose', '-f', options.composeFile, ...args]
+        : ['compose', ...args];
+
+      const child = spawn('docker', composeCmd, {
         stdio: 'inherit',
         cwd: process.cwd()
       });
@@ -375,7 +379,10 @@ export class DockerUtils {
       return child;
     } else {
       // For static logs, return the result
-      return this.executeComposeCommand('logs', args, { silent: true });
+      return this.executeComposeCommand('logs', args, {
+        silent: true,
+        ...(options.composeFile && { composeFile: options.composeFile })
+      });
     }
   }
 
@@ -415,9 +422,8 @@ export class DockerUtils {
 
   /**
    * Clean Docker system
-   */
-  async cleanSystem(options: { volumes?: boolean; images?: boolean; networks?: boolean } = {}): Promise<CommandResult> {
-    const args = ['system', 'prune', '-f'];
+   */  async cleanSystem(options: { volumes?: boolean; images?: boolean; networks?: boolean } = {}): Promise<CommandResult> {
+    const args = ['prune', '-f'];
 
     if (options.volumes) args.push('--volumes');
     if (options.images) args.push('-a');

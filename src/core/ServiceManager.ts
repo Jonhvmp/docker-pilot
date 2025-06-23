@@ -356,10 +356,10 @@ export class ServiceManager {
     const target = serviceName || 'all services';
     this.logger.info(`Getting logs for ${target}...`);
 
-    try {
-      const logOptions = {
+    try {      const logOptions = {
         ...options,
-        ...(this.options.projectName && { projectName: this.options.projectName })
+        ...(this.options.projectName && { projectName: this.options.projectName }),
+        ...(this.options.composeFile && { composeFile: this.options.composeFile })
       };
 
       const result = await this.dockerUtils.getLogs(serviceName || '', logOptions);
@@ -447,10 +447,13 @@ export class ServiceManager {
 
   /**
    * Get service status
-   */
-  async getServiceStatus(serviceName?: string): Promise<ServiceStatus[]> {
+   */  async getServiceStatus(serviceName?: string): Promise<ServiceStatus[]> {
     try {
-      return await this.dockerUtils.getServiceStatus(this.options.projectName!, serviceName);
+      return await this.dockerUtils.getServiceStatus(
+        this.options.projectName!,
+        serviceName,
+        this.options.composeFile ? { composeFile: this.options.composeFile } : undefined
+      );
     } catch (error) {
       this.logger.error('Error getting service status', error);
       return [];

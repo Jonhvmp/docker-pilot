@@ -2,15 +2,16 @@
   "projectName": "docker-pilot",
   "dockerCompose": "docker compose",
   "configVersion": "1.0",
+  "primaryComposeFile": "C:\\Users\\plugify\\Documents\\GitHub\\docker-pilot\\docker\\docker-compose.yml",
   "services": {
-    "app": {
-      "port": 3000,
-      "path": "./",
-      "description": "Main application service",
-      "healthCheck": true,
+    "mailhog": {
+      "port": 1025,
+      "description": "Auto-detected mailhog service",
+      "healthCheck": false,
       "backupEnabled": false,
       "restart": "unless-stopped",
-      "scale": 1
+      "scale": 1,
+      "detected": true
     }
   },
   "plugins": [],
@@ -57,5 +58,5 @@
   },
   "networks": {},
   "volumes": {},
-  "language": "en"
+  "language": "pt-br"
 }

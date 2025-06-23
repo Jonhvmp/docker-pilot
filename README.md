@@ -71,7 +71,7 @@ await pilot.up();              // Start services
 const status = await pilot.status();  // Get status
 ```
 
-## � What's New in v2.0.3
+## � What's New in v2.0.4
 
 ### 📄 Enhanced Docker Compose Management
 
@@ -168,7 +168,7 @@ Switch languages on-the-fly through the advanced settings menu!
 
 - **Node.js** >= 18.0.0
 - **Docker** >= 20.0.0
-- **Docker Compose** >= 2.0.3
+- **Docker Compose** >= 2.0.4
 
 ## 🎯 Use Cases
 

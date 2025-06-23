@@ -36,10 +36,18 @@ export class BuildCommand extends BaseCommand {
         this.logger.loading(this.i18n.t('cmd.build.loading', { service: serviceName }));
       } else {
         this.logger.loading(this.i18n.t('cmd.build.loading_all'));
+      }      // Build Docker command
+      const composeFile = this.context.composeFile;
+      const buildArgs = ['docker', 'compose'];
+
+      // Add compose file if available (always should be from context)
+      if (composeFile) {
+        buildArgs.push('-f', composeFile);
+      } else {
+        this.logger.warn('BuildCommand: No compose file in context, command may fail');
       }
 
-      // Build Docker command
-      const buildArgs = ['docker', 'compose', 'build'];
+      buildArgs.push('build');
 
       // Add options
       if (parsedOptions['no-cache']) {

@@ -68,10 +68,18 @@ export class ShellCommand extends BaseCommand {
         this.logger.info('🔍 Detecting available shell...');
         shellType = await this.detectAvailableShell(serviceName);
         this.logger.info(`✅ Using shell: ${shellType}`);
+      }      // Build Docker command
+      const composeFile = this.context.composeFile;
+      const execArgs = ['compose'];
+
+      // Add compose file if available (always should be from context)
+      if (composeFile) {
+        execArgs.push('-f', composeFile);
+      } else {
+        this.logger.warn('ShellCommand: No compose file in context, command may fail');
       }
 
-      // Build Docker command
-      const execArgs = ['compose', 'exec'];
+      execArgs.push('exec');
 
       // Add user if specified
       if (options['user'] || options['u']) {

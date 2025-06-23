@@ -209,6 +209,13 @@ export abstract class BaseCommand {
   }
 
   /**
+   * Get the main compose file from context
+   */
+  protected getComposeFile(): string | undefined {
+    return this.context.composeFile;
+  }
+
+  /**
    * Check if any services are configured
    */
   protected hasConfiguredServices(): boolean {

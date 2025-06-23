@@ -653,12 +653,12 @@ export class FileUtils {
     try {
       const glob = require('glob');
       const backupFiles = glob.sync(path.join(directory, pattern));
-      
+
       for (const backupFile of backupFiles) {
         await fs.remove(backupFile);
         this.logger.debug(`Removed old backup: ${backupFile}`);
       }
-      
+
       if (backupFiles.length > 0) {
         this.logger.info(`Cleaned ${backupFiles.length} old backup files`);
       }

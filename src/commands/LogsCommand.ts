@@ -51,14 +51,21 @@ export class LogsCommand extends BaseCommand {
       this.logger.error(this.i18n.t('cmd.logs.failed', { error: errorMessage }));
       return this.createErrorResult(errorMessage);
     }
-  }
-  /**
+  }  /**
    * Get real container logs using docker compose logs
    */
   private async getContainerLogs(serviceName?: string, options?: Record<string, any>): Promise<string> {
     try {
       // Build Docker command
-      const logsArgs = ['docker', 'compose', 'logs'];
+      const composeFile = this.context.composeFile;
+      const logsArgs = ['docker', 'compose'];
+
+      // Add compose file if available (always should be from context)
+      if (composeFile) {
+        logsArgs.push('-f', composeFile);
+      }
+
+      logsArgs.push('logs');
 
       // Add options
       const isFollowMode = options?.['follow'] || options?.['f'];
@@ -89,9 +96,7 @@ export class LogsCommand extends BaseCommand {
       // Add specific service if provided
       if (serviceName) {
         logsArgs.push(serviceName);
-      }
-
-      const command = logsArgs.join(' ');
+      }      const command = logsArgs.join(' ');
 
       // Handle follow mode differently
       if (isFollowMode) {

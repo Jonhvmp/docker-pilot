@@ -58,13 +58,17 @@ export class StatusCommand extends BaseCommand {
       this.logger.error(this.i18n.t('cmd.status.failed', { error: errorMessage }));
       return this.createErrorResult(errorMessage);
     }
-  }/**
+  }  /**
    * Get real status of services using docker compose ps
-   */  private async getServicesStatus(serviceName?: string): Promise<ServiceStatus[]> {
+   */
+  private async getServicesStatus(serviceName?: string): Promise<ServiceStatus[]> {
     try {
-      const command = serviceName
-        ? `docker compose ps ${serviceName} --format json`
-        : 'docker compose ps --format json';
+      // Use compose file from context
+      const composeFile = this.context.composeFile;
+      
+      const composeCmd = composeFile ? `docker compose -f "${composeFile}"` : 'docker compose';      const command = serviceName
+        ? `${composeCmd} ps ${serviceName} --format json`
+        : `${composeCmd} ps --format json`;
 
       const result = await this.execDockerCommand(command);
 
@@ -100,33 +104,29 @@ export class StatusCommand extends BaseCommand {
       // If JSON format fails, try with table format and parse manually
       return await this.getServicesStatusFallback(serviceName);
     }
-  }/**
+  }  /**
    * Fallback method using table format
    */
   private async getServicesStatusFallback(serviceName?: string): Promise<ServiceStatus[]> {
     try {
+      // Use compose file from context
+      const composeFile = this.context.composeFile;
+      
+      const composeCmd = composeFile ? `docker compose -f "${composeFile}"` : 'docker compose';
+
       // Try docker compose ps first
       const composeCommand = serviceName
-        ? `docker compose ps ${serviceName}`
-        : 'docker compose ps';
+        ? `${composeCmd} ps ${serviceName}`        : `${composeCmd} ps`;
 
-      console.log(`[DEBUG] Trying fallback with: ${composeCommand}`);
       let result = await this.execDockerCommand(composeCommand);
-
-      console.log(`[DEBUG] Fallback stdout: ${result.stdout}`);
-      console.log(`[DEBUG] Fallback stderr: ${result.stderr}`);
 
       if (!result.stdout.trim()) {
         // If docker compose ps doesn't work, try docker ps directly
-        console.log('[DEBUG] docker compose ps failed, trying docker ps');
         const dockerCommand = serviceName
           ? `docker ps --filter "name=${serviceName}" --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}\t{{.CreatedAt}}"`
           : 'docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}\t{{.CreatedAt}}"';
 
-        console.log(`[DEBUG] Trying docker ps: ${dockerCommand}`);
         result = await this.execDockerCommand(dockerCommand);
-
-        console.log(`[DEBUG] Docker ps stdout: ${result.stdout}`);
 
         if (!result.stdout.trim()) {
           console.log('[DEBUG] No containers found via docker ps');

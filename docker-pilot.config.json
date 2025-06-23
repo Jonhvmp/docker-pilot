@@ -2,7 +2,7 @@
   "projectName": "docker-pilot",
   "dockerCompose": "docker compose",
   "configVersion": "1.0",
-  "primaryComposeFile": "C:\\Users\\plugify\\Documents\\GitHub\\docker-pilot\\docker-compose.yml",
+  "primaryComposeFile": "C:\\Users\\plugify\\Documents\\GitHub\\docker-pilot\\docker\\docker-compose.yml",
   "services": {
     "mailhog": {
       "description": "Auto-detected mailhog service",
@@ -46,7 +46,7 @@
   },
   "development": {
     "hotReload": true,
-    "debugMode": true,
+    "debugMode": false,
     "logLevel": "info",
     "autoMigrate": false,
     "seedData": false,

@@ -97,15 +97,22 @@ export class UpCommand extends BaseCommand {
         }
       });
     }
-  }
-
-  /**
+  }  /**
    * Start services using docker compose up
    */
   private async startServices(serviceName?: string, options?: Record<string, any>): Promise<string> {
-    try {
-      // Build Docker command
-      const upArgs = ['docker', 'compose', 'up'];
+    try {      // Build Docker command
+      const composeFile = this.context.composeFile;
+      const upArgs = ['docker', 'compose'];
+
+      // Add compose file if available (always should be from context)
+      if (composeFile) {
+        upArgs.push('-f', composeFile);
+      } else {
+        this.logger.warn('UpCommand: No compose file in context, command may fail');
+      }
+
+      upArgs.push('up');
 
       // Add options
       if (options?.['detach'] !== false) {

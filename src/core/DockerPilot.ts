@@ -455,6 +455,20 @@ export class DockerPilot extends EventEmitter {
    */
   getPrimaryComposeFile(): string | null {
     return this.config?.primaryComposeFile || null;
+  }  /**
+   * Get current compose file
+   */
+  getComposeFile(): string | null {
+    // Try to get from ServiceManager first, then from config
+    if (this.serviceManager) {
+      const options = this.serviceManager.getOptions();
+      if (options.composeFile) {
+        return options.composeFile;
+      }
+    }
+
+    const primaryFile = this.getPrimaryComposeFile();
+    return primaryFile;
   }
 
   /**

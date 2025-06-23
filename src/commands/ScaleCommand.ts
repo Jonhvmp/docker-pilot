@@ -46,10 +46,18 @@ export class ScaleCommand extends BaseCommand {
         scaleTargets.push({ service, replicas });
       }
 
-      this.logger.loading(this.i18n.t('cmd.scaling'));
+      this.logger.loading(this.i18n.t('cmd.scaling'));      // Debug: Log the context compose file      // Build Docker command
+      const composeFile = this.context.composeFile;
+      const scaleArgs = ['compose'];
 
-      // Build Docker command
-      const scaleArgs = ['compose', 'up', '--detach', '--scale'];
+      // Add compose file if available (always should be from context)
+      if (composeFile) {
+        scaleArgs.push('-f', composeFile);
+      } else {
+        this.logger.warn('ScaleCommand: No compose file in context, command may fail');
+      }
+
+      scaleArgs.push('up', '--detach', '--scale');
 
       // Add scale targets
       for (const { service, replicas } of scaleTargets) {

@@ -169,6 +169,7 @@ export interface CommandContext {
   config: DockerPilotConfig;
   logger: any; // Will be properly typed when Logger is created
   workingDirectory: string;
+  composeFile?: string;
 }
 
 export interface CommandOptions {
