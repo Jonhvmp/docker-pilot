@@ -171,7 +171,6 @@ export class DockerPilot extends EventEmitter {
       throw error;
     }
   }
-
   /**
    * Stop all services
    */
@@ -184,11 +183,18 @@ export class DockerPilot extends EventEmitter {
       this.emitEvent('command:end', { command: 'down', result });
       return result;
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorResult: CommandResult = {
+        success: false,
+        output: '',
+        error: `Failed to stop services: ${errorMessage}`,
+        executionTime: 0
+      };
+
       this.emitEvent('command:error', { command: 'down', error });
-      throw error;
+      return errorResult;
     }
   }
-
   /**
    * Restart all services
    */
@@ -201,8 +207,16 @@ export class DockerPilot extends EventEmitter {
       this.emitEvent('command:end', { command: 'restart', result });
       return result;
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const errorResult: CommandResult = {
+        success: false,
+        output: '',
+        error: `Failed to restart services: ${errorMessage}`,
+        executionTime: 0
+      };
+
       this.emitEvent('command:error', { command: 'restart', error });
-      throw error;
+      return errorResult;
     }
   }
 
@@ -298,11 +312,10 @@ export class DockerPilot extends EventEmitter {
   // ============================================================================
   // MONITORING AND LOGGING METHODS
   // ============================================================================
-
   /**
    * Get service logs
    */
-  async logs(serviceName?: string, options: { follow?: boolean; tail?: number } = {}) {
+  async logs(serviceName?: string, options: { follow?: boolean; tail?: number } = {}): Promise<CommandResult> {
     await this.ensureInitialized();
     return this.serviceManager!.getLogs(serviceName, options);
   }
@@ -926,108 +939,239 @@ export class DockerPilot extends EventEmitter {
    */
   async executeCommand(commandName: string, args: string[] = []): Promise<CommandResult> {
     await this.ensureInitialized();
-      switch (commandName.toLowerCase()) {
-      case 'up':
-        if (args.length > 0 && args[0]) {
-          return this.startService(args[0]);
+      switch (commandName.toLowerCase()) {      case 'up':
+        try {
+          if (args.length > 0 && args[0]) {
+            return await this.startService(args[0]);
+          }
+          return await this.up();        } catch (error) {
+          return {
+            success: false,
+            output: '',
+            error: error instanceof Error ? error.message : 'Failed to start services',
+            executionTime: 0
+          };
         }
-        return this.up();
 
       case 'down':
-        if (args.length > 0 && args[0]) {
-          return this.stopService(args[0]);
+        try {
+          if (args.length > 0 && args[0]) {
+            return await this.stopService(args[0]);
+          }
+          return await this.down();
+        } catch (error) {
+          return {
+            success: false,
+            output: '',
+            error: error instanceof Error ? error.message : 'Failed to stop services',
+            executionTime: 0
+          };
         }
-        return this.down();
 
       case 'restart':
-        if (args.length > 0 && args[0]) {
-          return this.restartService(args[0]);
-        }
-        return this.restart();
+        try {
+          if (args.length > 0 && args[0]) {
+            return await this.restartService(args[0]);
+          }
+          return await this.restart();
+        } catch (error) {
+          return {
+            success: false,
+            output: '',
+            error: error instanceof Error ? error.message : 'Failed to restart services',
+            executionTime: 0
+          };
+        }case 'build':
+        try {
+          return await this.build(args[0]);
+        } catch (error) {
+          return {
+            success: false,
+            output: '',
+            error: error instanceof Error ? error.message : 'Failed to build',
+            executionTime: 0
+          };
+        }case 'logs':
+        const serviceName = args.find(arg => !arg.startsWith('--')) || undefined;
+        const followOption = args.includes('--follow');
 
-      case 'build':
-        return this.build(args[0]);
-
-      case 'logs':
-        const logsResult = await this.logs(args[0], { follow: args.includes('--follow') });
-        if ('success' in logsResult) {
-          return logsResult;
-        }
-        // If it's a ChildProcess, return a success result
-        return {
-          success: true,
-          output: 'Logs started',
-          error: '',
-          executionTime: 0
-        };
-
-      case 'status':
-        const statusResult = await this.status();
-        return {
-          success: true,
-          output: JSON.stringify(statusResult),
-          error: '',
-          executionTime: 0
-        };
-
-      case 'shell':
+        try {
+          return await this.logs(serviceName, { follow: followOption });
+        } catch (error) {
+          return {
+            success: false,
+            output: '',
+            error: error instanceof Error ? error.message : 'Failed to get logs',
+            executionTime: 0
+          };
+        }      case 'status':
+        try {
+          const statusResult = await this.status();
+          return {
+            success: true,
+            output: JSON.stringify(statusResult, null, 2),
+            error: '',
+            executionTime: 0
+          };
+        } catch (error) {
+          return {
+            success: false,
+            output: '',
+            error: error instanceof Error ? error.message : 'Failed to get status',
+            executionTime: 0
+          };
+        }case 'shell':
         if (!args[0]) {
-          throw new DockerPilotError('SERVICE_NOT_FOUND', 'Service name required for shell command');
+          return {
+            success: false,
+            output: '',
+            error: 'Service name required for shell command',
+            executionTime: 0
+          };
         }
-        // Shell command returns a process, we'll handle it differently
-        const shellResult = await this.exec(args[0], ['/bin/bash'], { interactive: true });
-        if ('success' in shellResult) {
-          return shellResult;
-        }
-        return {
-          success: true,
-          output: 'Shell opened',
-          error: '',
-          executionTime: 0
-        };
 
-      case 'exec':
+        try {
+          // Shell command returns a process, we'll handle it differently
+          const shellResult = await this.exec(args[0], ['/bin/bash'], { interactive: true });
+          if ('success' in shellResult) {
+            return shellResult;
+          }
+          return {
+            success: true,
+            output: `Shell opened for service: ${args[0]}`,
+            error: '',
+            executionTime: 0
+          };
+        } catch (error) {
+          return {
+            success: false,
+            output: '',
+            error: error instanceof Error ? error.message : 'Failed to open shell',
+            executionTime: 0
+          };
+        }      case 'exec':
         if (!args[0]) {
-          throw new DockerPilotError('SERVICE_NOT_FOUND', 'Service name required for exec command');
+          return {
+            success: false,
+            output: '',
+            error: 'Service name required for exec command',
+            executionTime: 0
+          };
         }
-        const execResult = await this.exec(args[0], args.slice(1));
-        if ('success' in execResult) {
-          return execResult;
-        }
-        return {
-          success: true,
-          output: 'Command executed',
-          error: '',
-          executionTime: 0
-        };
 
-      case 'scale':
+        try {
+          const execResult = await this.exec(args[0], args.slice(1));
+          if ('success' in execResult) {
+            return execResult;
+          }
+          return {
+            success: true,
+            output: `Command executed in service: ${args[0]}`,
+            error: '',
+            executionTime: 0
+          };
+        } catch (error) {
+          return {
+            success: false,
+            output: '',
+            error: error instanceof Error ? error.message : 'Failed to execute command',
+            executionTime: 0
+          };
+        }      case 'scale':
         const scaleArg = args[0];
         if (!scaleArg || !scaleArg.includes('=')) {
-          throw new DockerPilotError('INVALID_ARGUMENT', 'Invalid scale format. Use: service=replicas');
+          return {
+            success: false,
+            output: '',
+            error: 'Invalid scale format. Use: service=replicas (e.g., web=3)',
+            executionTime: 0
+          };
         }
+
         const scaleParts = scaleArg.split('=');
         if (scaleParts.length !== 2 || !scaleParts[0] || !scaleParts[1]) {
-          throw new DockerPilotError('INVALID_ARGUMENT', 'Invalid scale format. Use: service=replicas');
+          return {
+            success: false,
+            output: '',
+            error: 'Invalid scale format. Use: service=replicas (e.g., web=3)',
+            executionTime: 0
+          };
         }
-        return this.scale(scaleParts[0], parseInt(scaleParts[1]));
 
-      case 'pull':
-        return this.pull(args[0]);
+        const replicas = parseInt(scaleParts[1]);
+        if (isNaN(replicas) || replicas < 0) {
+          return {
+            success: false,
+            output: '',
+            error: 'Invalid number of replicas. Must be a positive number.',
+            executionTime: 0
+          };
+        }
+
+        try {
+          return await this.scale(scaleParts[0], replicas);
+        } catch (error) {
+          return {
+            success: false,
+            output: '',
+            error: error instanceof Error ? error.message : 'Failed to scale service',
+            executionTime: 0
+          };
+        }      case 'pull':
+        try {
+          return await this.pull(args[0]);
+        } catch (error) {
+          return {
+            success: false,
+            output: '',
+            error: error instanceof Error ? error.message : 'Failed to pull images',
+            executionTime: 0
+          };
+        }
 
       case 'clean':
-        return this.clean({ volumes: args.includes('--all') });
-
-      case 'config':
+        try {
+          return await this.clean({ volumes: args.includes('--all') });
+        } catch (error) {
+          return {
+            success: false,
+            output: '',
+            error: error instanceof Error ? error.message : 'Failed to clean',
+            executionTime: 0
+          };
+        }case 'config':
         if (args.includes('--show')) {
-          this.logger.info('Current configuration:');
-          this.logger.info(JSON.stringify(this.config, null, 2));
-          return { success: true, output: '', error: '', executionTime: 0 };
+          try {
+            const configOutput = JSON.stringify(this.config, null, 2);
+            this.logger.info('Current configuration:');
+            this.logger.info(configOutput);
+            return {
+              success: true,
+              output: configOutput,
+              error: '',
+              executionTime: 0
+            };
+          } catch (error) {
+            return {
+              success: false,
+              output: '',
+              error: 'Failed to display configuration',
+              executionTime: 0
+            };
+          }
         }
-        throw new DockerPilotError('UNKNOWN_COMMAND', 'Unknown config command');
-
-      default:
-        throw new DockerPilotError('UNKNOWN_COMMAND', `Unknown command: ${commandName}`);
+        return {
+          success: false,
+          output: '',
+          error: 'Unknown config command. Use --show to display current configuration.',
+          executionTime: 0
+        };      default:
+        return {
+          success: false,
+          output: '',
+          error: `Unknown command: ${commandName}. Available commands: up, down, restart, build, logs, status, shell, exec, scale, pull, clean, config`,
+          executionTime: 0
+        };
     }
   }
   /**

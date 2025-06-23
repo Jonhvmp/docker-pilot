@@ -31,25 +31,26 @@ export abstract class BaseCommand {
   /**
    * Execute the command
    */
-  abstract execute(args: string[], options: CommandOptions): Promise<CommandResult>;
-  /**
+  abstract execute(args: string[], options: CommandOptions): Promise<CommandResult>;  /**
    * Validate command arguments
    */
   protected validateArgs(args: string[], expectedCount?: number): boolean {
     if (expectedCount !== undefined && args.length !== expectedCount) {
-      this.logger.error(this.i18n.t('error.invalid_choice'));
+      this.logger.error(this.i18n.t('error.invalid_args_count', {
+        expected: expectedCount,
+        received: args.length
+      }));
       this.showUsage();
       return false;
     }
     return true;
   }
-
   /**
    * Show command usage
    */
   showUsage(): void {
-    this.logger.info(`Usage: ${this.usage}`);
-    this.logger.info(`Description: ${this.description}`);
+    this.logger.info(`${this.i18n.t('base.usage')}: ${this.usage}`);
+    this.logger.info(`${this.i18n.t('base.description')}: ${this.description}`);
   }
 
   /**
@@ -66,16 +67,25 @@ export abstract class BaseCommand {
    */
   protected showExamples(): void {
     // Override in subclasses
-  }
-  /**
+    this.logger.info(`\n${this.i18n.t('base.examples')}:`);
+  }  /**
    * Check if Docker is available
    */
   protected async checkDockerAvailable(): Promise<boolean> {
     try {
-      // This would use DockerUtils to check if Docker is running
+      // Check if Docker is available using context's docker utilities
+      if (this.context.workingDirectory) {
+        // Use a simple docker --version check to verify Docker is available
+        const { exec } = require('child_process');
+        const { promisify } = require('util');
+        const execAsync = promisify(exec);
+
+        await execAsync('docker --version');
+        return true;
+      }
       return true;
     } catch (error) {
-      this.logger.error(this.i18n.t('cmd.docker_not_running'));
+      this.logger.error(this.i18n.t('base.docker_unavailable'));
       return false;
     }
   }
@@ -111,9 +121,14 @@ export abstract class BaseCommand {
     const result = await operation();
     const executionTime = Date.now() - startTime;
     return { result, executionTime };
-  }
-  /**
-   * Parse command options
+  }  /**
+   * Parse command options from arguments
+   * Supports both long (--option) and short (-o) option formats
+   * Examples:
+   *   --follow
+   *   --tail=50
+   *   --since 1h
+   *   -f
    */
   protected parseOptions(args: string[]): { args: string[]; options: Record<string, any> } {
     const options: Record<string, any> = {};
@@ -152,18 +167,51 @@ export abstract class BaseCommand {
 
     return { args: filteredArgs, options };
   }
-
   /**
    * Confirm destructive action
    */
   protected async confirmAction(message: string): Promise<boolean> {
     if (!this.context.config.cli.confirmDestructiveActions) {
       return true;
-    }
-
-    // In a real implementation, this would use inquirer or similar
-    // For now, just return true
+    }    // Show warning message
     this.logger.warn(message);
+    this.logger.warn(this.i18n.t('base.destructive_warning'));
+
+    // In a real CLI environment, this would use readline or inquirer
+    // For now, we'll assume confirmation is given
+    // TODO: Implement proper confirmation input for CLI usage
     return true;
+  }
+  /**
+   * Validate service name exists in configuration
+   */
+  protected validateService(serviceName: string): boolean {
+    if (!this.context.config.services[serviceName]) {
+      this.logger.error(this.i18n.t('error.service_not_found', { service: serviceName }));
+
+      const availableServices = Object.keys(this.context.config.services);
+      if (availableServices.length > 0) {
+        this.logger.info(this.i18n.t('base.available_services'));
+        availableServices.forEach(service => {
+          this.logger.info(`  - ${service}`);
+        });
+      }
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Get available services from configuration
+   */
+  protected getAvailableServices(): string[] {
+    return Object.keys(this.context.config.services);
+  }
+
+  /**
+   * Check if any services are configured
+   */
+  protected hasConfiguredServices(): boolean {
+    return Object.keys(this.context.config.services).length > 0;
   }
 }

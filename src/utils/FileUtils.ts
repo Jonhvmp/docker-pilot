@@ -618,20 +618,23 @@ export class FileUtils {
   watchPath(targetPath: string, callback: (eventType: string, filename: string | null) => void): fs.FSWatcher {
     this.logger.debug(`Watching path: ${targetPath}`);
     return fs.watch(targetPath, { recursive: true }, callback);
-  }
-
-  /**
-   * Create backup of file
+  }  /**
+   * Create backup of file (maintains only one backup)
    */
   async backupFile(filePath: string, backupDir?: string): Promise<string> {
     try {
       const fileInfo = await this.getFileInfo(filePath);
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const backupName = `${fileInfo.name}-backup-${timestamp}${fileInfo.extension}`;
+      const backupName = `${fileInfo.name}.backup${fileInfo.extension}`;
 
       const backupPath = backupDir
         ? path.join(backupDir, backupName)
         : path.join(path.dirname(filePath), backupName);
+
+      // Remove existing backup if it exists to avoid accumulation
+      if (await this.exists(backupPath)) {
+        await fs.remove(backupPath);
+        this.logger.debug(`Removed existing backup: ${backupPath}`);
+      }
 
       await this.copy(filePath, backupPath);
       this.logger.info(`Backup created: ${backupPath}`);
@@ -640,6 +643,27 @@ export class FileUtils {
     } catch (error) {
       this.logger.error(`Failed to backup file: ${filePath}`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Clean old backup files with timestamp pattern
+   */
+  async cleanOldBackups(directory: string, pattern: string = '*-backup-*'): Promise<void> {
+    try {
+      const glob = require('glob');
+      const backupFiles = glob.sync(path.join(directory, pattern));
+      
+      for (const backupFile of backupFiles) {
+        await fs.remove(backupFile);
+        this.logger.debug(`Removed old backup: ${backupFile}`);
+      }
+      
+      if (backupFiles.length > 0) {
+        this.logger.info(`Cleaned ${backupFiles.length} old backup files`);
+      }
+    } catch (error) {
+      this.logger.error(`Failed to clean old backups in: ${directory}`, error);
     }
   }
 

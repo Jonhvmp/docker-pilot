@@ -275,7 +275,7 @@ export class InteractiveMenu {
 
           await this.dockerPilot.detectServices(replaceExisting);
           console.log(this.i18n.t('command.detection_complete'));
-          
+
           // Show updated service status after detection
           await this.displayServiceStatus();
           await this.sleep(2000);
@@ -291,22 +291,120 @@ export class InteractiveMenu {
           await this.dockerPilot.executeCommand('up', []);
           await this.displayServiceStatus();
         }
-      },
-      {
+      },      {
         key: (optionKey++).toString(),
         label: this.i18n.t('command.stop_all'),
         category: '🚀 ' + this.i18n.t('command.basic'),
         action: async () => {
-          await this.dockerPilot.executeCommand('down', []);
+          try {
+            // Execute DownCommand directly
+            const currentConfig = this.dockerPilot.getConfig();
+            if (!currentConfig) {
+              this.logger.error('Configuration not available');
+              return;
+            }
+
+            const context = {
+              config: currentConfig,
+              logger: this.logger,
+              workingDirectory: this.dockerPilot.getWorkingDirectory()
+            };
+            const { DownCommand } = await import('../commands/DownCommand');
+            const downCommand = new DownCommand(context);
+
+            this.logger.info('🛑 Stopping all services...');
+            console.log('\n' + '='.repeat(50));
+
+            const result = await downCommand.execute([], {});
+
+            console.log('='.repeat(50));
+
+            if (result.success) {
+              this.logger.success('✅ All services stopped successfully');
+              if (result.executionTime) {
+                this.logger.info(`⏱️ Completed in ${result.executionTime.toFixed(2)}ms`);
+              }
+            } else {
+              this.logger.error(`❌ Failed to stop services: ${result.error}`);
+            }
+          } catch (error) {
+            this.logger.error('Failed to stop services', error);
+          }
         }
-      },
-      {
+      },{
         key: (optionKey++).toString(),
         label: this.i18n.t('command.restart_all'),
         category: '🚀 ' + this.i18n.t('command.basic'),
         action: async () => {
-          await this.dockerPilot.executeCommand('restart', []);
+          try {
+            // Execute RestartCommand directly
+            const currentConfig = this.dockerPilot.getConfig();
+            if (!currentConfig) {
+              this.logger.error('Configuration not available');
+              return;
+            }
+
+            const context = {
+              config: currentConfig,
+              logger: this.logger,
+              workingDirectory: this.dockerPilot.getWorkingDirectory()
+            };
+            const { RestartCommand } = await import('../commands/RestartCommand');
+            const restartCommand = new RestartCommand(context);
+
+            const result = await restartCommand.execute([], {});
+
+            if (result.success) {
+              console.log('');
+              this.logger.success('✅ All services restarted successfully');
+              if (result.executionTime) {
+                this.logger.info(`⏱️ Completed in ${result.executionTime.toFixed(2)}ms`);
+              }
+
+              // Show updated status after restart
+              await this.displayServiceStatus();
+            } else {
+              this.logger.error(result.error || 'Failed to restart services');
+            }
+          } catch (error) {
+            this.logger.error(`Restart command failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
+        }
+      },{
+        key: (optionKey++).toString(),
+        label: 'Build todos os serviços',
+        category: '🚀 ' + this.i18n.t('command.basic'),
+        action: async () => {
+          // Ask user for build options
+          this.logger.info('🔨 Opções de build:');
+          console.log('1. Build normal');
+          console.log('2. Build sem cache (--no-cache)');
+          console.log('3. Build com pull (--pull)');
+          console.log('4. Build sem cache e com pull');
+          console.log('');
+
+          const choice = await this.askQuestion(this.i18n.t('menu.choose') + ' ');
+
+          switch (choice) {
+            case '1':
+              await this.dockerPilot.executeCommand('build', []);
+              break;
+            case '2':
+              await this.dockerPilot.executeCommand('build', ['--no-cache']);
+              break;
+            case '3':
+              await this.dockerPilot.executeCommand('build', ['--pull']);
+              break;
+            case '4':
+              await this.dockerPilot.executeCommand('build', ['--pull', '--no-cache']);
+              break;
+            default:
+              this.logger.warn(this.i18n.t('error.invalid_choice'));
+              return;
+          }
+
           await this.displayServiceStatus();
+          await this.askToContinue();
         }
       },
       {
@@ -318,23 +416,115 @@ export class InteractiveMenu {
           await this.dockerPilot.executeCommand('up', []);
           await this.displayServiceStatus();
         }
-      },
-      {
+      },      {
         key: (optionKey++).toString(),
         label: this.i18n.t('command.logs_all'),
         category: '🚀 ' + this.i18n.t('command.basic'),
         action: async () => {
-          this.logger.info(this.i18n.t('command.stop_logs_tip'));
-          this.logger.newLine();
-          await this.dockerPilot.executeCommand('logs', ['--follow']);
+          try {
+            // Ask user if they want to follow logs or see recent logs
+            this.logger.info('📋 ' + this.i18n.t('command.logs_options'));
+            console.log('1. ' + this.i18n.t('command.logs_follow_all'));
+            console.log('2. ' + this.i18n.t('command.logs_recent_all'));
+            console.log('3. ' + this.i18n.t('command.logs_tail_custom'));
+            console.log('');
+
+            const choice = await this.askQuestion(this.i18n.t('menu.choose') + ' ');
+
+            // Execute LogsCommand directly
+            const config = this.dockerPilot.getConfig();
+            if (!config) {
+              this.logger.error('Configuration not available');
+              return;
+            }
+
+            const context = {
+              config,
+              logger: this.logger,
+              workingDirectory: this.dockerPilot.getWorkingDirectory()            };
+            const { LogsCommand } = await import('../commands/LogsCommand');
+            const logsCommand = new LogsCommand(context);
+
+            let logsArgs: string[] = [];
+
+            switch (choice) {
+              case '1':
+                this.logger.info('🔄 ' + this.i18n.t('command.following_logs_all'));
+                this.logger.info('💡 ' + this.i18n.t('command.stop_logs_tip'));
+                this.logger.newLine();
+                logsArgs.push('--follow');
+                break;
+              case '2':
+                logsArgs.push('--tail', '50');
+                break;
+              case '3':
+                const tailCount = await this.askQuestion(this.i18n.t('command.logs_tail_count'));
+                const count = parseInt(tailCount) || 50;
+                logsArgs.push('--tail', count.toString());
+                break;
+              default:
+                this.logger.warn(this.i18n.t('error.invalid_choice'));
+                return;
+            }
+
+            const result = await logsCommand.execute(logsArgs, {});
+
+            if (result.success) {
+              if (result.output && result.output.trim() !== '') {
+                console.log('');
+                console.log(result.output);
+              }
+              console.log('');
+              this.logger.success('✅ Logs retrieved successfully');
+              if (result.executionTime) {
+                this.logger.info(`⏱️ Completed in ${result.executionTime.toFixed(2)}ms`);
+              }
+            } else {
+              this.logger.error(result.error || 'Failed to retrieve logs');
+            }
+          } catch (error) {
+            this.logger.error(`Logs command failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
         }
-      },
-      {
+      },{
         key: (optionKey++).toString(),
         label: this.i18n.t('command.status'),
-        category: '🚀 ' + this.i18n.t('command.basic'),
-        action: async () => {
-          await this.dockerPilot.executeCommand('status', []);
+        category: '🚀 ' + this.i18n.t('command.basic'),        action: async () => {
+          try {
+            // Execute StatusCommand directly to avoid integration issues
+            const config = this.dockerPilot.getConfig();
+            if (!config) {
+              this.logger.error('Configuration not available');
+              return;
+            }
+
+            const context = {
+              config,
+              logger: this.logger,
+              workingDirectory: this.dockerPilot.getWorkingDirectory()
+            };
+            const { StatusCommand } = await import('../commands/StatusCommand');
+            const statusCommand = new StatusCommand(context);
+
+            const result = await statusCommand.execute([], {});
+
+            if (result.success) {
+              // Show the status output if available
+              if (result.output && result.output.trim() !== '[]') {
+                console.log('');
+                console.log(result.output);
+              }
+              console.log('');
+              this.logger.success(this.i18n.t('command.status_complete'));
+              if (result.executionTime) {
+                this.logger.info(`⏱️ Completed in ${result.executionTime.toFixed(2)}ms`);
+              }
+            } else {
+              this.logger.error(result.error || this.i18n.t('command.status_failed'));
+            }
+          } catch (error) {
+            this.logger.error(`Status command failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
         }
       }
     );    // Advanced commands
@@ -342,38 +532,130 @@ export class InteractiveMenu {
       {
         key: (optionKey++).toString(),
         label: this.i18n.t('command.shell'),
+        category: '🛠️ ' + this.i18n.t('command.advanced'),        action: async () => {
+          try {
+            // Get current config first
+            const currentConfig = this.dockerPilot.getConfig();
+            if (!currentConfig) {
+              this.logger.error('Configuration not available');
+              return;
+            }
+
+            const services = Object.keys(currentConfig.services);
+            if (services.length === 0) {
+              this.logger.warn(this.i18n.t('command.no_services_configured'));
+              return;
+            }
+
+            this.logger.info(this.i18n.t('command.available_services'));
+            services.forEach((service, index) => {
+              this.logger.info(`${index + 1}. ${service}`);
+            });
+
+            const choice = await this.askQuestion(this.i18n.t('command.choose_service'));
+            const serviceIndex = parseInt(choice) - 1;
+            const serviceName = services[serviceIndex] || services[0];
+
+            if (!serviceName) {
+              this.logger.error(this.i18n.t('command.no_valid_service'));
+              return;
+            }
+
+            // Execute ShellCommand directly
+            const context = {
+              config: currentConfig,
+              logger: this.logger,
+              workingDirectory: this.dockerPilot.getWorkingDirectory()
+            };
+            const { ShellCommand } = await import('../commands/ShellCommand');
+            const shellCommand = new ShellCommand(context);
+
+            const result = await shellCommand.execute([serviceName], {});
+
+            if (result.success) {
+              console.log('');
+              this.logger.success(`✅ Shell session completed for ${serviceName}`);
+              if (result.executionTime) {
+                this.logger.info(`⏱️ Session duration: ${result.executionTime.toFixed(2)}ms`);
+              }
+            } else {
+              this.logger.error(result.error || `Failed to open shell for ${serviceName}`);
+            }
+          } catch (error) {
+            this.logger.error(`Shell command failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
+        }      },
+      {
+        key: (optionKey++).toString(),
+        label: 'Executar comando customizado',
         category: '🛠️ ' + this.i18n.t('command.advanced'),
         action: async () => {
-          const services = Object.keys(config.services);
-          if (services.length === 0) {
-            this.logger.warn(this.i18n.t('command.no_services_configured'));
-            return;
+          try {
+            // Get current config first
+            const currentConfig = this.dockerPilot.getConfig();
+            if (!currentConfig) {
+              this.logger.error('Configuration not available');
+              return;
+            }
+
+            const services = Object.keys(currentConfig.services);
+            if (services.length === 0) {
+              this.logger.warn(this.i18n.t('command.no_services_configured'));
+              return;
+            }
+
+            this.logger.info(this.i18n.t('command.available_services'));
+            services.forEach((service, index) => {
+              this.logger.info(`${index + 1}. ${service}`);
+            });
+
+            const serviceChoice = await this.askQuestion(this.i18n.t('command.choose_service'));
+            const serviceIndex = parseInt(serviceChoice) - 1;
+            const serviceName = services[serviceIndex] || services[0];
+
+            if (!serviceName) {
+              this.logger.error(this.i18n.t('command.no_valid_service'));
+              return;
+            }
+
+            const command = await this.askQuestion('Digite o comando para executar: ');
+            if (!command.trim()) {
+              this.logger.error('Command is required');
+              return;
+            }
+
+            console.log('');
+            this.logger.info(`🚀 Executando comando no serviço ${serviceName}: ${command}`);
+
+            // Execute ExecCommand directly
+            const context = {
+              config: currentConfig,
+              logger: this.logger,
+              workingDirectory: this.dockerPilot.getWorkingDirectory()
+            };
+            const { ExecCommand } = await import('../commands/ExecCommand');
+            const execCommand = new ExecCommand(context);
+
+            const result = await execCommand.execute([serviceName, ...command.split(' ')], {});
+
+            if (result.success) {
+              console.log('');
+              this.logger.success(`✅ Command executed successfully in ${serviceName}`);
+              if (result.executionTime) {
+                this.logger.info(`⏱️ Execution time: ${result.executionTime.toFixed(2)}ms`);
+              }
+            } else {
+              this.logger.error(result.error || `Failed to execute command in ${serviceName}`);
+            }
+          } catch (error) {
+            this.logger.error(`Exec command failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
           }
-
-          this.logger.info(this.i18n.t('command.available_services'));
-          services.forEach((service, index) => {
-            this.logger.info(`${index + 1}. ${service}`);
-          });
-            const choice = await this.askQuestion(this.i18n.t('command.choose_service'));
-          const serviceIndex = parseInt(choice) - 1;
-          const serviceName = services[serviceIndex] || services[0];
-
-          if (!serviceName) {
-            this.logger.error(this.i18n.t('command.no_valid_service'));
-            return;
-          }
-
-          this.logger.info(this.i18n.t('command.opening_shell', { service: serviceName }));
-          this.logger.info(this.i18n.t('command.shell_tip'));
-          this.logger.newLine();
-
-          await this.dockerPilot.executeCommand('shell', [serviceName]);
         }
       },
       {
         key: (optionKey++).toString(),
         label: this.i18n.t('command.health'),
-        category: '🛠️ ' + this.i18n.t('command.advanced'),        action: async () => {
+        category: '🛠️ ' + this.i18n.t('command.advanced'),action: async () => {
           const serviceManager = this.dockerPilot.getServiceManager();
           if (!serviceManager) {
             this.logger.error(this.i18n.t('command.service_manager_unavailable'));
@@ -472,7 +754,36 @@ export class InteractiveMenu {
         label: this.i18n.t('command.show_config'),
         category: '⚙️ ' + this.i18n.t('command.maintenance'),
         action: async () => {
-          await this.dockerPilot.executeCommand('config', ['--show']);
+          try {
+            // Execute ConfigCommand directly
+            const currentConfig = this.dockerPilot.getConfig();
+            if (!currentConfig) {
+              this.logger.error('Configuration not available');
+              return;
+            }
+
+            const context = {
+              config: currentConfig,
+              logger: this.logger,
+              workingDirectory: this.dockerPilot.getWorkingDirectory()
+            };
+            const { ConfigCommand } = await import('../commands/ConfigCommand');
+            const configCommand = new ConfigCommand(context);
+
+            const result = await configCommand.execute(['show'], {});
+
+            if (result.success) {
+              console.log('');
+              this.logger.success('✅ Configuration displayed successfully');
+              if (result.executionTime) {
+                this.logger.info(`⏱️ Completed in ${result.executionTime.toFixed(2)}ms`);
+              }
+            } else {
+              this.logger.error(result.error || 'Failed to show configuration');
+            }
+          } catch (error) {
+            this.logger.error(`Config command failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
         }
       },
       {
@@ -693,25 +1004,159 @@ export class InteractiveMenu {
             await this.dockerPilot.executeCommand('up', [serviceName]);
             await this.displayServiceStatus(serviceName);
           }
-        },
-        {
+        },        {
           key: (optionKey++).toString(),
           label: this.i18n.t('command.restart_service', { service: serviceName }),
           category: `🔧 ${serviceDisplayName}`,
           action: async () => {
-            await this.dockerPilot.executeCommand('restart', [serviceName]);
+            try {
+              // Execute RestartCommand directly for specific service
+              const currentConfig = this.dockerPilot.getConfig();
+              if (!currentConfig) {
+                this.logger.error('Configuration not available');
+                return;
+              }
+
+              const context = {
+                config: currentConfig,
+                logger: this.logger,
+                workingDirectory: this.dockerPilot.getWorkingDirectory()
+              };
+              const { RestartCommand } = await import('../commands/RestartCommand');
+              const restartCommand = new RestartCommand(context);
+
+              const result = await restartCommand.execute([serviceName], {});
+
+              if (result.success) {
+                console.log('');
+                this.logger.success(`✅ Service "${serviceName}" restarted successfully`);
+                if (result.executionTime) {
+                  this.logger.info(`⏱️ Completed in ${result.executionTime.toFixed(2)}ms`);
+                }
+
+                // Show updated status after restart
+                await this.displayServiceStatus(serviceName);
+              } else {
+                this.logger.error(result.error || `Failed to restart service "${serviceName}"`);
+              }
+            } catch (error) {
+              this.logger.error(`Restart command failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            }
+          }        },{
+          key: (optionKey++).toString(),
+          label: `Build ${serviceName}`,
+          category: `🔧 ${serviceDisplayName}`,
+          action: async () => {
+            // Ask user for build options for specific service
+            this.logger.info(`🔨 Build options para ${serviceName}:`);
+            console.log('1. Build normal');
+            console.log('2. Build sem cache (--no-cache)');
+            console.log('3. Build com pull (--pull)');
+            console.log('4. Build sem cache e com pull');
+            console.log('');
+
+            const choice = await this.askQuestion(this.i18n.t('menu.choose') + ' ');
+
+            switch (choice) {
+              case '1':
+                await this.dockerPilot.executeCommand('build', [serviceName]);
+                break;
+              case '2':
+                await this.dockerPilot.executeCommand('build', [serviceName, '--no-cache']);
+                break;
+              case '3':
+                await this.dockerPilot.executeCommand('build', [serviceName, '--pull']);
+                break;
+              case '4':
+                await this.dockerPilot.executeCommand('build', [serviceName, '--pull', '--no-cache']);
+                break;
+              default:
+                this.logger.warn(this.i18n.t('error.invalid_choice'));
+                return;
+            }
+
             await this.displayServiceStatus(serviceName);
+            await this.askToContinue();
           }
-        },
-        {
+        },        {
           key: (optionKey++).toString(),
           label: this.i18n.t('command.logs_service', { service: serviceName }),
           category: `🔧 ${serviceDisplayName}`,
           action: async () => {
-            this.logger.info(this.i18n.t('command.showing_logs', { service: serviceName }));
-            this.logger.info(this.i18n.t('command.press_ctrl_c'));
-            this.logger.newLine();
-            await this.dockerPilot.executeCommand('logs', [serviceName, '--follow']);
+            try {
+              // Ask user for log viewing options
+              this.logger.info(`📋 Logs do ${serviceName}:`);
+              console.log('1. Seguir logs em tempo real');
+              console.log('2. Ver últimas 50 linhas');
+              console.log('3. Ver últimas N linhas');
+              console.log('4. Logs desde um tempo específico');
+              console.log('');
+
+              const choice = await this.askQuestion('Escolha uma opção: ');
+
+              // Execute LogsCommand directly
+              const config = this.dockerPilot.getConfig();
+              if (!config) {
+                this.logger.error('Configuration not available');
+                return;
+              }
+
+              const context = {
+                config,
+                logger: this.logger,
+                workingDirectory: this.dockerPilot.getWorkingDirectory()              };
+              const { LogsCommand } = await import('../commands/LogsCommand');
+              const logsCommand = new LogsCommand(context);
+
+              let logsArgs: string[] = [serviceName];
+
+              switch (choice) {
+                case '1':
+                  this.logger.info(`🔄 Seguindo logs do ${serviceName}...`);
+                  this.logger.info('💡 ' + this.i18n.t('command.press_ctrl_c'));
+                  this.logger.newLine();
+                  logsArgs.push('--follow');
+                  break;
+                case '2':
+                  logsArgs.push('--tail', '50');
+                  break;
+                case '3':
+                  const tailCount = await this.askQuestion('Quantas linhas mostrar? ');
+                  const count = parseInt(tailCount) || 50;
+                  logsArgs.push('--tail', count.toString());
+                  break;
+                case '4':
+                  const since = await this.askQuestion('Desde quando? (ex: 1h, 30m, 2023-01-01): ');
+                  if (since.trim()) {
+                    logsArgs.push('--since', since.trim());
+                  } else {
+                    this.logger.warn('Tempo inválido fornecido');
+                    return;
+                  }
+                  break;
+                default:
+                  this.logger.warn(this.i18n.t('error.invalid_choice'));
+                  return;
+              }
+
+              const result = await logsCommand.execute(logsArgs, {});
+
+              if (result.success) {
+                if (result.output && result.output.trim() !== '') {
+                  console.log('');
+                  console.log(result.output);
+                }
+                console.log('');
+                this.logger.success(`✅ Logs for ${serviceName} retrieved successfully`);
+                if (result.executionTime) {
+                  this.logger.info(`⏱️ Completed in ${result.executionTime.toFixed(2)}ms`);
+                }
+              } else {
+                this.logger.error(result.error || `Failed to retrieve logs for ${serviceName}`);
+              }
+            } catch (error) {
+              this.logger.error(`Logs command failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            }
           }
         }
       );

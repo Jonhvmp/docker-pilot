@@ -147,8 +147,7 @@ export class ServiceManager {
     }
   }  /**
    * Stop all services
-   */
-  async stopAll(): Promise<CommandResult> {
+   */  async stopAll(): Promise<CommandResult> {
     this.logger.loading(this.i18n.t('operation.stopping_services'));
 
     try {
@@ -166,10 +165,15 @@ export class ServiceManager {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(this.i18n.t('error.command_execution'), error);
-      throw new ServiceError(`Failed to stop services: ${errorMessage}`, { error });
+
+      return {
+        success: false,
+        output: '',
+        error: `Failed to stop services: ${errorMessage}`,
+        executionTime: 0
+      };
     }
-  }
-  /**
+  }  /**
    * Restart all services
    */
   async restartAll(): Promise<CommandResult> {
@@ -191,7 +195,13 @@ export class ServiceManager {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(this.i18n.t('error.command_execution'), error);
-      throw new ServiceError(`Failed to restart services: ${errorMessage}`, { error });
+
+      return {
+        success: false,
+        output: '',
+        error: `Failed to restart services: ${errorMessage}`,
+        executionTime: 0
+      };
     }
   }
   /**
@@ -339,11 +349,10 @@ export class ServiceManager {
       this.logger.error(`Error rebuilding ${target}`, error);
       throw new ServiceError(`Failed to rebuild ${target}: ${errorMessage}`, { serviceName, error });
     }
-  }
-  /**
+  }  /**
    * Get service logs
    */
-  async getLogs(serviceName?: string, options: { follow?: boolean; tail?: number } = {}) {
+  async getLogs(serviceName?: string, options: { follow?: boolean; tail?: number } = {}): Promise<CommandResult> {
     const target = serviceName || 'all services';
     this.logger.info(`Getting logs for ${target}...`);
 
@@ -353,11 +362,31 @@ export class ServiceManager {
         ...(this.options.projectName && { projectName: this.options.projectName })
       };
 
-      return await this.dockerUtils.getLogs(serviceName || '', logOptions);
+      const result = await this.dockerUtils.getLogs(serviceName || '', logOptions);
+
+      // Handle the case where getLogs returns a ChildProcess (when follow is true)
+      if ('pid' in result && typeof result.pid === 'number') {
+        // It's a ChildProcess, return success immediately for follow mode
+        return {
+          success: true,
+          output: 'Following logs...',
+          error: '',
+          executionTime: 0
+        };
+      }
+
+      // It's a CommandResult
+      return result as CommandResult;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Error getting logs for ${target}`, error);
-      throw new ServiceError(`Failed to get logs for ${target}: ${errorMessage}`, { serviceName, error });
+
+      return {
+        success: false,
+        output: '',
+        error: `Failed to get logs for ${target}: ${errorMessage}`,
+        executionTime: 0
+      };
     }
   }
 

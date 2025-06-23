@@ -1,5 +1,9 @@
 import { BaseCommand } from './BaseCommand';
 import { CommandResult, CommandOptions, CommandContext } from '../types';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 export class ScaleCommand extends BaseCommand {
   constructor(context: CommandContext) {
@@ -55,20 +59,18 @@ export class ScaleCommand extends BaseCommand {
       // Add no-recreate flag to avoid recreating existing containers
       if (!parsedOptions['recreate']) {
         scaleArgs.push('--no-recreate');
-      }
-
-      // Add timeout if specified
+      }      // Add timeout if specified
       if (parsedOptions['timeout']) {
         scaleArgs.push('--timeout', parsedOptions['timeout'] as string);
-      }      // For now, simulate the scaling operation
-      this.logger.info('🔄 Scaling operations:');
-
-      for (const { service, replicas } of scaleTargets) {
-        this.logger.info(this.i18n.t('cmd.scale.scaling', { service, replicas }));
-
-        // Simulate scaling time
-        await new Promise(resolve => setTimeout(resolve, 500));
       }
+
+      const command = 'docker ' + scaleArgs.join(' ');
+      this.logger.debug(`Executing: ${command}`);
+
+      // Execute the real Docker command
+      const result = await this.execDockerCommand(command);
+        // Display scaling results
+      this.showScalingResults(scaleTargets, result.stdout);
 
       const executionTime = Date.now() - startTime;
 
@@ -86,12 +88,49 @@ export class ScaleCommand extends BaseCommand {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(this.i18n.t('cmd.scale.failed', { error: errorMessage }));
-      return this.createErrorResult(errorMessage);
+      return this.createErrorResult(errorMessage);    }
+  }
+
+  private async execDockerCommand(command: string): Promise<{ stdout: string; stderr: string }> {
+    try {
+      const result = await execAsync(command, {
+        cwd: this.context.workingDirectory,
+        maxBuffer: 1024 * 1024 * 5 // 5MB buffer
+      });
+      return result;
+    } catch (error: any) {
+      // Some docker commands return non-zero exit codes but still have useful output
+      if (error.stdout) {
+        return { stdout: error.stdout, stderr: error.stderr || '' };
+      }
+      throw error;
     }
   }
 
-  private showScalingResults(scaleTargets: Array<{ service: string; replicas: number }>): void {
-    this.logger.info('\n📊 Current scaling status:');
+  private showScalingResults(scaleTargets: Array<{ service: string; replicas: number }>, output?: string): void {
+    if (output && output.trim() !== '') {
+      this.logger.newLine();
+      this.logger.info('📋 Scaling details:');
+      this.logger.separator('-', 30);
+
+      // Display the output
+      const lines = output.split('\n').filter(line => line.trim() !== '');
+      lines.forEach(line => {
+        if (line.includes('ERROR') || line.includes('error')) {
+          this.logger.error(`  ${line}`);
+        } else if (line.includes('WARN') || line.includes('warn')) {
+          this.logger.warn(`  ${line}`);
+        } else if (line.includes('Creating') || line.includes('Starting') || line.includes('Stopping')) {
+          this.logger.success(`  ${line}`);
+        } else {
+          this.logger.info(`  ${line}`);
+        }
+      });
+
+      this.logger.newLine();
+    }
+
+    this.logger.info('📊 Current scaling status:');
 
     for (const { service, replicas } of scaleTargets) {
       const status = replicas === 0 ? 'stopped' : 'running';

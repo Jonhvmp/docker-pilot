@@ -481,14 +481,14 @@ export const messages: Messages = {
     'cmd.pulled_success': 'Successfully pulled images for {target}',
     'cmd.pull_failed': 'Failed to pull images: {error}',
     'cmd.scaling': 'Scaling services...',
-    'cmd.scaled_success': 'Successfully scaled {count} service{plural}',
-    'cmd.scale_failed': 'Failed to scale services: {error}',
+    'cmd.scaled_success': 'Successfully scaled {count} service{plural}',    'cmd.scale_failed': 'Failed to scale services: {error}',
     'cmd.fetching_logs': 'Fetching logs for {target}...',
     'cmd.logs_retrieved': 'Logs retrieved for {target}',
     'cmd.logs_failed': 'Failed to retrieve logs: {error}',
     'cmd.getting_status': 'Getting status for {target}...',
     'cmd.status_retrieved': 'Status retrieved for {target}',
     'cmd.status_failed': 'Failed to get status for {target}',
+    'cmd.status_complete': 'Status check completed successfully',
     'cmd.all_services': 'all services',
     'cmd.service_name': 'service \'{name}\'',
       // Auto-detect
@@ -556,11 +556,41 @@ export const messages: Messages = {
     'error.failed_to_analyze': 'Failed to analyze {file}: {error}',
     // Language Selection
     'language.welcome': '🌍 Welcome to Docker Pilot!',
-    'language.choose_initial': 'Please choose your preferred language:',
-    'language.option_english': '1. English',    'language.option_portuguese': '2. Português (Brasil)',
+    'language.choose_initial': 'Please choose your preferred language:',    'language.option_english': '1. English',    'language.option_portuguese': '2. Português (Brasil)',
     'language.enter_choice': 'Enter your choice (1-2): ',
     'language.invalid_choice': 'Invalid choice. Please enter 1 or 2.',
     'language.back_menu': 'Returning to main menu...',
+
+    // BaseCommand messages
+    'base.usage': 'Usage',
+    'base.description': 'Description',
+    'base.examples': 'Examples',
+    'base.docker_check': 'Checking Docker availability...',
+    'base.docker_available': 'Docker is available',
+    'base.docker_unavailable': 'Docker is not available or not running',
+    'base.operation_starting': 'Starting operation...',
+    'base.operation_completed': 'Operation completed',
+    'base.operation_failed': 'Operation failed',
+    'base.parsing_options': 'Parsing command options...',
+    'base.validating_args': 'Validating arguments...',
+    'base.confirmation_required': 'Confirmation required for this action',
+    'base.destructive_warning': '⚠️  This is a potentially destructive action',
+    'base.service_validation': 'Validating service name...',
+    'base.available_services': 'Available services:',
+    'base.no_services': 'No services configured',
+
+    // Error messages for BaseCommand
+    'error.invalid_args_count': 'Invalid number of arguments. Expected {expected}, received {received}',
+    'error.docker_not_running': 'Docker is not running or not available',
+    'error.operation_failed': 'Operation failed: {message}',
+    'error.invalid_service': 'Invalid service name: {service}',
+    'error.no_services_configured': 'No services are configured',
+    'error.confirmation_failed': 'Action confirmation failed',
+
+    // Command result messages
+    'result.success': 'Command executed successfully',
+    'result.error': 'Command execution failed',
+    'result.execution_time': 'Execution time: {time}ms',
 
     // Compose interface messages
     'compose.available_files': 'Available docker-compose files:',
@@ -896,10 +926,10 @@ export const messages: Messages = {
     'cmd.scaled_success': '{count} serviço{plural} escalado com sucesso',
     'cmd.scale_failed': 'Falha ao escalar serviços: {error}',
     'cmd.fetching_logs': 'Buscando logs para {target}...',
-    'cmd.logs_retrieved': 'Logs obtidos para {target}',
-    'cmd.logs_failed': 'Falha ao obter logs: {error}',    'cmd.getting_status': 'Obtendo status para {target}...',
+    'cmd.logs_retrieved': 'Logs obtidos para {target}',    'cmd.logs_failed': 'Falha ao obter logs: {error}',    'cmd.getting_status': 'Obtendo status para {target}...',
     'cmd.status_retrieved': 'Status obtido para {target}',
     'cmd.status_failed': 'Falha ao obter status para {target}',
+    'cmd.status_complete': 'Verificação de status concluída com sucesso',
     'cmd.all_services': 'todos os serviços',
     'cmd.service_name': 'serviço \'{name}\'',
 
@@ -1050,12 +1080,42 @@ export const messages: Messages = {
     'error.missing_argument': 'Argumento obrigatório ausente: {argument}',
     'error.failed_to_analyze': 'Falha ao analisar {file}: {error}',
 
-    // Language Selection
-    'language.welcome': '🌍 Bem-vindo ao Docker Pilot!',
+    // Language Selection    'language.welcome': '🌍 Bem-vindo ao Docker Pilot!',
     'language.choose_initial': 'Por favor, escolha seu idioma preferido:',    'language.option_english': '1. English',
     'language.option_portuguese': '2. Português (Brasil)',    'language.enter_choice': 'Digite sua escolha (1-2): ',
     'language.invalid_choice': 'Escolha inválida. Digite 1 ou 2.',
     'language.back_menu': 'Voltando ao menu principal...',
+
+    // Mensagens do BaseCommand
+    'base.usage': 'Uso',
+    'base.description': 'Descrição',
+    'base.examples': 'Exemplos',
+    'base.docker_check': 'Verificando disponibilidade do Docker...',
+    'base.docker_available': 'Docker está disponível',
+    'base.docker_unavailable': 'Docker não está disponível ou não está executando',
+    'base.operation_starting': 'Iniciando operação...',
+    'base.operation_completed': 'Operação concluída',
+    'base.operation_failed': 'Operação falhou',
+    'base.parsing_options': 'Analisando opções do comando...',
+    'base.validating_args': 'Validando argumentos...',
+    'base.confirmation_required': 'Confirmação necessária para esta ação',
+    'base.destructive_warning': '⚠️  Esta é uma ação potencialmente destrutiva',
+    'base.service_validation': 'Validando nome do serviço...',
+    'base.available_services': 'Serviços disponíveis:',
+    'base.no_services': 'Nenhum serviço configurado',
+
+    // Mensagens de erro para BaseCommand
+    'error.invalid_args_count': 'Número inválido de argumentos. Esperado {expected}, recebido {received}',
+    'error.docker_not_running': 'Docker não está executando ou não está disponível',
+    'error.operation_failed': 'Operação falhou: {message}',
+    'error.invalid_service': 'Nome de serviço inválido: {service}',
+    'error.no_services_configured': 'Nenhum serviço está configurado',
+    'error.confirmation_failed': 'Falha na confirmação da ação',
+
+    // Mensagens de resultado de comando
+    'result.success': 'Comando executado com sucesso',
+    'result.error': 'Execução do comando falhou',
+    'result.execution_time': 'Tempo de execução: {time}ms',
 
     // Mensagens da interface de compose
     'compose.available_files': 'Arquivos docker-compose disponíveis:',

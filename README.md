@@ -6,7 +6,7 @@
 
 **A powerful and scalable npm library for managing Docker applications of any size.**
 
-[![npm version](https://badge.fury.io/js/docker-pilot.svg)](https://badge.fury.io/js/docker-pilot)
+[![npm version](https://badge.fury.io/js/docker-pilot.svg?icon=si%3Anpm)](https://badge.fury.io/js/docker-pilot)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
@@ -71,7 +71,7 @@ await pilot.up();              // Start services
 const status = await pilot.status();  // Get status
 ```
 
-## � What's New in v2.0.2
+## � What's New in v2.0.3
 
 ### 📄 Enhanced Docker Compose Management
 
@@ -168,7 +168,7 @@ Switch languages on-the-fly through the advanced settings menu!
 
 - **Node.js** >= 18.0.0
 - **Docker** >= 20.0.0
-- **Docker Compose** >= 2.0.2
+- **Docker Compose** >= 2.0.3
 
 ## 🎯 Use Cases
 

@@ -1,5 +1,9 @@
 import { BaseCommand } from './BaseCommand';
 import { CommandResult, CommandOptions, CommandContext } from '../types';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 export class PullCommand extends BaseCommand {
   constructor(context: CommandContext) {
@@ -47,28 +51,18 @@ export class PullCommand extends BaseCommand {
 
       if (parsedOptions['include-deps']) {
         pullArgs.push('--include-deps');
-      }
-
-      // Add specific service if provided
+      }      // Add specific service if provided
       if (serviceName) {
         pullArgs.push(serviceName);
-      }
+      }      const command = 'docker ' + pullArgs.join(' ');
+      this.logger.debug(`Executing: ${command}`);
 
-      // Simulate pulling images
-      const services = serviceName ? [serviceName] : ['web', 'api', 'database'];
+      // Execute the real Docker command
+      const result = await this.execDockerCommand(command);
+        // Display pull results
+      this.showPullResults(result.stdout);
 
-      for (const service of services) {
-        this.logger.info(`📦 Pulling ${service} image...`);
-
-        // Simulate different pull times
-        const pullTime = Math.floor(Math.random() * 2000) + 1000;
-        await new Promise(resolve => setTimeout(resolve, pullTime));
-
-        this.logger.info(`  ✅ ${service}: latest`);
-      }      const executionTime = Date.now() - startTime;
-
-      // Show pull summary
-      this.showPullSummary(services);
+      const executionTime = Date.now() - startTime;
 
       // Show success message
       if (serviceName) {
@@ -89,33 +83,48 @@ export class PullCommand extends BaseCommand {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(this.i18n.t('cmd.pull.failed', { error: errorMessage }));
-      return this.createErrorResult(errorMessage);
+      return this.createErrorResult(errorMessage);    }
+  }
+
+  private async execDockerCommand(command: string): Promise<{ stdout: string; stderr: string }> {
+    try {
+      const result = await execAsync(command, {
+        cwd: this.context.workingDirectory,
+        maxBuffer: 1024 * 1024 * 10 // 10MB buffer for pull output
+      });
+      return result;
+    } catch (error: any) {
+      // Some docker commands return non-zero exit codes but still have useful output
+      if (error.stdout) {
+        return { stdout: error.stdout, stderr: error.stderr || '' };
+      }
+      throw error;
     }
   }
 
-  private showPullSummary(services: string[]): void {
-    this.logger.info('\n📦 Pull Summary:');
+  private showPullResults(output: string): void {
+    if (!output || output.trim() === '') {
+      return;
+    }
 
-    services.forEach(service => {
-      const size = Math.floor(Math.random() * 500) + 50; // Random size 50-550MB
-      const digest = this.generateDigest();
+    this.logger.newLine();
+    this.logger.info('📦 Pull details:');
+    this.logger.separator('-', 40);
 
-      this.logger.info(`  📋 ${service}:`);
-      this.logger.info(`    • Image: ${service}:latest`);
-      this.logger.info(`    • Size: ~${size}MB`);
-      this.logger.info(`    • Digest: ${digest}`);
+    // Display the output with formatting
+    const lines = output.split('\n').filter(line => line.trim() !== '');
+    lines.forEach(line => {
+      if (line.includes('ERROR') || line.includes('error')) {
+        this.logger.error(`  ${line}`);
+      } else if (line.includes('WARN') || line.includes('warn')) {
+        this.logger.warn(`  ${line}`);
+      } else if (line.includes('Pulling') || line.includes('Downloaded') || line.includes('Status')) {
+        this.logger.success(`  ${line}`);
+      } else {
+        this.logger.info(`  ${line}`);
+      }
     });
-  }
-
-  private generateDigest(): string {
-    const chars = '0123456789abcdef';
-    let digest = 'sha256:';
-
-    for (let i = 0; i < 64; i++) {
-      digest += chars[Math.floor(Math.random() * chars.length)];
-    }
-
-    return digest.substring(0, 19) + '...'; // Truncate for display
+      this.logger.newLine();
   }
 
   protected override showExamples(): void {

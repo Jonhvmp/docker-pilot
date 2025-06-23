@@ -1,6 +1,11 @@
 import { BaseCommand } from './BaseCommand';
 import { CommandResult, CommandOptions, CommandContext } from '../types';
 import * as path from 'path';
+import * as fs from 'fs';
+import { promisify } from 'util';
+
+const writeFileAsync = promisify(fs.writeFile);
+const existsAsync = promisify(fs.exists);
 
 export class ConfigCommand extends BaseCommand {
   constructor(context: CommandContext) {
@@ -114,9 +119,19 @@ export class ConfigCommand extends BaseCommand {
       ? this.createErrorResult(`Configuration validation failed with ${errors.length} error(s)`)
       : this.createSuccessResult('Configuration is valid');
   }
-
   private async initConfig(options: Record<string, any>): Promise<CommandResult> {
     const configPath = path.join(this.context.workingDirectory, 'docker-pilot.config.json');
+
+    // Check if config already exists
+    if (await existsAsync(configPath)) {
+      const forceCreate = options['force'] || options['f'];
+      if (!forceCreate) {
+        return this.createErrorResult(
+          `Configuration file already exists at ${configPath}. Use --force to overwrite.`
+        );
+      }
+      this.logger.warn('⚠️  Overwriting existing configuration file');
+    }
 
     this.logger.loading('📝 Creating new configuration file...');
 
@@ -126,6 +141,7 @@ export class ConfigCommand extends BaseCommand {
       projectName,
       dockerCompose: 'docker compose',
       configVersion: '1.0',
+      language: 'en',
       services: {},
       plugins: [],
       cli: {
@@ -153,7 +169,7 @@ export class ConfigCommand extends BaseCommand {
       development: {
         hotReload: true,
         debugMode: false,
-        logLevel: 'info',
+        logLevel: 'info' as 'debug' | 'info' | 'warn' | 'error',
         autoMigrate: false,
         seedData: false,
         testMode: false,
@@ -164,34 +180,87 @@ export class ConfigCommand extends BaseCommand {
       volumes: {}
     };
 
-    this.logger.info(`📁 Configuration will be created at: ${configPath}`);
-    this.logger.info('🔧 Sample configuration structure:');
-    console.log(JSON.stringify(newConfig, null, 2));
+    try {
+      // Actually write the configuration file
+      await writeFileAsync(configPath, JSON.stringify(newConfig, null, 2), 'utf8');
 
-    this.logger.success('✅ Configuration template created');
-    this.logger.info('💡 Edit the configuration file to customize your setup');
+      this.logger.success(`✅ Configuration file created at: ${configPath}`);
 
-    return this.createSuccessResult('Configuration initialized');
+      if (!options['quiet']) {
+        this.logger.info('🔧 Configuration structure:');
+        this.displayConfigSummary(newConfig);
+      }
+
+      this.logger.info('💡 Edit the configuration file to customize your setup');
+      this.logger.info('� Run "docker-pilot config validate" to check your configuration');
+
+      return this.createSuccessResult('Configuration file created successfully');
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to create configuration file: ${errorMessage}`);
+      return this.createErrorResult(`Failed to create configuration file: ${errorMessage}`);
+    }
   }
-
   private async showConfigPath(_options: Record<string, any>): Promise<CommandResult> {
     const configPath = path.join(this.context.workingDirectory, 'docker-pilot.config.json');
+    const configExists = await existsAsync(configPath);
 
     this.logger.info('📍 Configuration file location:');
     console.log(configPath);
+
+    if (configExists) {
+      this.logger.success('✅ Configuration file exists');
+
+      try {
+        const stats = fs.statSync(configPath);
+        this.logger.info(`📏 File size: ${this.formatFileSize(stats.size)}`);
+        this.logger.info(`📅 Last modified: ${stats.mtime.toLocaleString()}`);
+      } catch (error) {
+        this.logger.debug('Could not read file stats');
+      }
+    } else {
+      this.logger.warn('⚠️  Configuration file does not exist');
+      this.logger.info('💡 Run "docker-pilot config init" to create one');
+    }
 
     return this.createSuccessResult('Configuration path displayed');
   }
 
   private async editConfig(_options: Record<string, any>): Promise<CommandResult> {
     const configPath = path.join(this.context.workingDirectory, 'docker-pilot.config.json');
+    const configExists = await existsAsync(configPath);
+
+    if (!configExists) {
+      this.logger.error('❌ Configuration file does not exist');
+      this.logger.info('💡 Run "docker-pilot config init" to create one');
+      return this.createErrorResult('Configuration file not found');
+    }
 
     this.logger.info('✏️  Edit configuration:');
     this.logger.info(`📁 File: ${configPath}`);
     this.logger.info('💡 Use your preferred editor to modify the configuration');
     this.logger.info('🔄 Run "docker-pilot config validate" after making changes');
 
+    // Show some helpful editing tips
+    this.logger.newLine();
+    this.logger.info('📝 Editing tips:');
+    this.logger.info('  • Use a JSON-aware editor for syntax highlighting');
+    this.logger.info('  • Backup the file before making major changes');
+    this.logger.info('  • Validate JSON syntax with your editor');
+    this.logger.info('  • Check the documentation for available options');
+
     return this.createSuccessResult('Configuration edit information displayed');
+  }
+
+  /**
+   * Format file size in human readable format
+   */
+  private formatFileSize(bytes: number): string {
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    if (bytes === 0) return '0 Bytes';
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
   }
 
   private displayConfigSummary(config: any): void {
@@ -220,17 +289,17 @@ ${config.plugins?.map((plugin: string) => `  • ${plugin}`).join('\n') || '  (n
   • Log Level: ${config.development?.logLevel || 'info'}
     `.trim());
   }
-
   protected override showExamples(): void {
     this.logger.info(`
 Examples:
-  docker-pilot config show             # Display current configuration
-  docker-pilot config show --json      # Display configuration as JSON
-  docker-pilot config validate         # Validate configuration
-  docker-pilot config init             # Create new configuration
-  docker-pilot config init --name myapp # Create config with project name
-  docker-pilot config path             # Show configuration file path
-  docker-pilot config edit             # Show edit instructions
+  docker-pilot config show               # Display current configuration
+  docker-pilot config show --json        # Display configuration as JSON
+  docker-pilot config validate           # Validate configuration
+  docker-pilot config init               # Create new configuration
+  docker-pilot config init --name myapp  # Create config with project name
+  docker-pilot config init --force       # Overwrite existing configuration
+  docker-pilot config path               # Show configuration file path
+  docker-pilot config edit               # Show edit instructions
 `);
   }
 }

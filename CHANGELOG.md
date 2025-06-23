@@ -75,7 +75,7 @@ e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - **TypeScript**: Linguagem principal
 - **Node.js**: Runtime (>= 18.0.0)
 - **Docker**: Container runtime (>= 20.0.0)
-- **Docker Compose**: Orquestração (>= 2.0.2)
+- **Docker Compose**: Orquestração (>= 2.0.3)
 
 #### Dependências de Desenvolvimento
 - **Zod**: Validação de schemas
@@ -275,7 +275,7 @@ Para mais informações, visite: [GitHub Repository](https://github.com/Jonhvmp/
 
 ---
 
-## [2.0.2] - 2025-06-22
+## [2.0.3] - 2025-06-22
 
 ### 🌍 Nova Funcionalidade: Suporte Multi-idioma
 - **Integração completa do sistema de i18n**

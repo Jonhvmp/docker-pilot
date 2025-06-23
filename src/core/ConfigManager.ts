@@ -25,7 +25,6 @@ export class ConfigManager {
   private validationUtils: ValidationUtils;
   private options: Required<ConfigManagerOptions>;
   private i18n: I18n;
-
   constructor(options: ConfigManagerOptions = {}) {
     this.logger = new Logger();
     this.fileUtils = new FileUtils(this.logger);
@@ -40,6 +39,24 @@ export class ConfigManager {
     };
 
     this.configPath = this.options.configPath;
+
+    // Clean old backup files on initialization
+    this.cleanOldBackups().catch(error => {
+      this.logger.debug('Failed to clean old backups during initialization', error);
+    });
+  }
+
+  /**
+   * Clean old backup files with timestamp pattern
+   */
+  private async cleanOldBackups(): Promise<void> {
+    try {
+      const configDir = path.dirname(this.configPath);
+      const configBaseName = path.basename(this.configPath, '.json');
+      await this.fileUtils.cleanOldBackups(configDir, `${configBaseName}-backup-*.json`);
+    } catch (error) {
+      this.logger.debug('Failed to clean old backups', error);
+    }
   }
 
   /**
@@ -136,13 +153,25 @@ export class ConfigManager {
           `Cannot save invalid configuration:\n${errorMessages.join('\n')}`,
           { errors: validationResult.errors }
         );
-      }
-
-      // Create backup if file exists
+      }      // Create backup if file exists and content has changed
       if (await this.fileUtils.exists(this.configPath)) {
         try {
-          await this.fileUtils.backupFile(this.configPath);
-          this.logger.debug('Configuration backup created');
+          // Clean old backup files with timestamp pattern first
+          const configDir = path.dirname(this.configPath);
+          const configBaseName = path.basename(this.configPath, '.json');
+          await this.fileUtils.cleanOldBackups(configDir, `${configBaseName}-backup-*.json`);
+
+          // Check if content has actually changed
+          const existingContent = await this.fileUtils.readJson(this.configPath);
+          const contentChanged = JSON.stringify(existingContent) !== JSON.stringify(configToSave);
+
+          if (contentChanged) {
+            await this.fileUtils.backupFile(this.configPath);
+            this.logger.debug('Configuration backup created due to changes');
+          } else {
+            this.logger.debug('Configuration unchanged, skipping backup');
+            return; // No need to save if nothing changed
+          }
         } catch (backupError) {
           this.logger.warn('Failed to create configuration backup', backupError);
         }
@@ -477,7 +506,7 @@ export class ConfigManager {
     }
 
     const normalizedEnv: Record<string, string> = {};
-    
+
     for (const [key, value] of Object.entries(env)) {
       // Convert any value to string
       if (value === null || value === undefined) {
@@ -544,27 +573,27 @@ export class ConfigManager {
     if (replaceExisting) {
       // Start fresh - only include detected services
       mergedServices = {};
-      
+
       // Add all detected services
       for (const [serviceName, serviceConfig] of Object.entries(detectedServices)) {
         mergedServices[serviceName] = serviceConfig;
-        
+
         if (serviceName in currentServices) {
           replacedCount++;
         } else {
           addedCount++;
         }
       }
-      
+
       // Count removed services
       removedCount = Object.keys(currentServices).filter(
         serviceName => !(serviceName in detectedServices)
       ).length;
-      
+
     } else {
       // Merge mode - start with current services
       mergedServices = { ...currentServices };
-      
+
       for (const [serviceName, serviceConfig] of Object.entries(detectedServices)) {
         if (serviceName in currentServices) {
           // Update existing service with detected information

@@ -1,6 +1,6 @@
 {
   "name": "docker-pilot",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "A powerful, scalable Docker CLI library for managing containerized applications of any size",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

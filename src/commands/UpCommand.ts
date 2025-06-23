@@ -4,6 +4,10 @@
 
 import { CommandResult, CommandOptions, CommandContext } from '../types';
 import { BaseCommand } from './BaseCommand';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 export class UpCommand extends BaseCommand {
   constructor(context: CommandContext) {
@@ -18,36 +22,47 @@ export class UpCommand extends BaseCommand {
     const serviceName = parsedArgs[0];
 
     try {
-      const startTime = Date.now();
-
       if (!(await this.checkDockerAvailable())) {
         return this.createErrorResult(this.i18n.t('cmd.docker_not_available'));
       }
 
-      const target = serviceName || this.i18n.t('cmd.all_services');
-      this.logger.loading(this.i18n.t('cmd.starting', { target }));
+      // Show loading message
+      if (serviceName) {
+        this.logger.loading(`🚀 Starting service: ${serviceName}...`);
+      } else {
+        this.logger.loading('🚀 Starting all services...');
+      }
 
-      // Here we would use the DockerPilot instance to start services
-      // For now, just simulate the operation
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { result: upOutput, executionTime } = await this.measureExecutionTime(async () => {
+        return await this.startServices(serviceName, parsedOptions);
+      });      // Display startup results
+      this.showStartupResults(upOutput);
 
-      const executionTime = Date.now() - startTime;
+      // Show success message
+      if (serviceName) {
+        this.logger.success(`✅ Service "${serviceName}" started successfully`);
+      } else {
+        this.logger.success('✅ All services started successfully');
+      }
 
-      this.logger.success(this.i18n.t('cmd.started_success', { target }));
-
+      // Show service information
       if (parsedOptions['detach'] !== false) {
         this.showServiceInfo(serviceName);
       }
 
+      const resultMessage = serviceName
+        ? `service "${serviceName}"`
+        : 'all services';
+
       return this.createSuccessResult(
-        this.i18n.t('cmd.started_success', { target }),
+        `Successfully started ${resultMessage}`,
         executionTime
       );
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const target = serviceName || this.i18n.t('cmd.all_services');
-      this.logger.error(this.i18n.t('cmd.start_failed', { target }), error);
+      const target = serviceName || 'all services';
+      this.logger.error(`Failed to start ${target}: ${errorMessage}`);
       return this.createErrorResult(errorMessage);
     }
   }
@@ -82,5 +97,104 @@ export class UpCommand extends BaseCommand {
         }
       });
     }
+  }
+
+  /**
+   * Start services using docker compose up
+   */
+  private async startServices(serviceName?: string, options?: Record<string, any>): Promise<string> {
+    try {
+      // Build Docker command
+      const upArgs = ['docker', 'compose', 'up'];
+
+      // Add options
+      if (options?.['detach'] !== false) {
+        upArgs.push('--detach');
+      }
+
+      if (options?.['build'] || options?.['b']) {
+        upArgs.push('--build');
+      }
+
+      if (options?.['force-recreate']) {
+        upArgs.push('--force-recreate');
+      }
+
+      if (options?.['no-deps']) {
+        upArgs.push('--no-deps');
+      }
+
+      if (options?.['remove-orphans']) {
+        upArgs.push('--remove-orphans');
+      }
+
+      if (options?.['scale']) {
+        upArgs.push('--scale', options['scale'] as string);
+      }
+
+      // Add specific service if provided
+      if (serviceName) {
+        upArgs.push(serviceName);
+      }
+
+      const command = upArgs.join(' ');
+      this.logger.debug(`Executing: ${command}`);
+
+      const result = await this.execDockerCommand(command);
+
+      return result.stdout || 'Services started successfully';
+
+    } catch (error) {
+      this.logger.warn(`Failed to start services: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Execute Docker command with proper error handling
+   */
+  private async execDockerCommand(command: string): Promise<{ stdout: string; stderr: string }> {
+    try {
+      const result = await execAsync(command, {
+        cwd: this.context.workingDirectory,
+        maxBuffer: 1024 * 1024 * 5 // 5MB buffer
+      });
+      return result;
+    } catch (error: any) {
+      // Some docker commands return non-zero exit codes but still have useful output
+      if (error.stdout) {
+        return { stdout: error.stdout, stderr: error.stderr || '' };
+      }
+      throw error;
+    }
+  }
+  /**
+   * Display startup results with formatting
+   */
+  private showStartupResults(output: string): void {
+    if (!output || output.trim() === '' || output === 'Services started successfully') {
+      // No specific output to show, startup was clean
+      return;
+    }
+
+    this.logger.newLine();
+    this.logger.info('📋 Startup details:');
+    this.logger.separator('-', 30);
+
+    // Display the output
+    const lines = output.split('\n').filter(line => line.trim() !== '');
+    lines.forEach(line => {
+      if (line.includes('ERROR') || line.includes('error')) {
+        this.logger.error(`  ${line}`);
+      } else if (line.includes('WARN') || line.includes('warn')) {
+        this.logger.warn(`  ${line}`);
+      } else if (line.includes('Started') || line.includes('Created') || line.includes('Running')) {
+        this.logger.success(`  ${line}`);
+      } else {
+        this.logger.info(`  ${line}`);
+      }
+    });
+
+    this.logger.newLine();
   }
 }
